@@ -30,7 +30,6 @@ def a_priori(log):
             distinct_events.add(event["concept:name"])
     pairs = list(combinations(distinct_events, 2))
     for pair in pairs:
-        print(pair)
         result[pair] = get_num_traces_by_two_events(log, pair[0], pair[1]) / num_traces
     return result
 

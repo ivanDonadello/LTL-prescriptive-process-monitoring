@@ -24,7 +24,8 @@ def generate_decision_tree_paths(dt_input, target_label):
             dtc = DecisionTreeClassifier(random_state=0)
             dtc.fit(X, y)
 
-            dot_data = tree.export_graphviz(dtc, out_file=None, feature_names=feature_names, class_names=[TraceLabel.FALSE.name, TraceLabel.TRUE.name],
+            dot_data = tree.export_graphviz(dtc, out_file=None, feature_names=feature_names,
+                                            class_names=[TraceLabel.FALSE.name, TraceLabel.TRUE.name],
                                             filled=True, rounded=True, special_characters=True)
             graph = pydotplus.graph_from_dot_data(dot_data)
             Image(graph.create_png())
@@ -38,9 +39,11 @@ def generate_decision_tree_paths(dt_input, target_label):
                 res[key] = []
             else:
                 if target_label == TraceLabel.TRUE.name:
-                    leaf_ids_positive = filter(lambda leaf_id: dtc.tree_.value[leaf_id][0][0] < dtc.tree_.value[leaf_id][0][1], leaf_ids)
+                    leaf_ids_positive = filter(
+                        lambda leaf_id: dtc.tree_.value[leaf_id][0][0] < dtc.tree_.value[leaf_id][0][1], leaf_ids)
                 else:
-                    leaf_ids_positive = filter(lambda leaf_id: dtc.tree_.value[leaf_id][0][0] > dtc.tree_.value[leaf_id][0][1], leaf_ids)
+                    leaf_ids_positive = filter(
+                        lambda leaf_id: dtc.tree_.value[leaf_id][0][0] > dtc.tree_.value[leaf_id][0][1], leaf_ids)
 
                 def recurse(left, right, child, lineage=None):
                     if lineage is None:
@@ -65,8 +68,23 @@ def generate_decision_tree_paths(dt_input, target_label):
                     rules = []
                     for node in recurse(left, right, leaf_id):
                         rules.append(node)
-                    path = PathModel(impurity=dtc.tree_.impurity[leaf_id],
-                                     num_samples=dtc.tree_.value[leaf_id][0][0] + dtc.tree_.value[leaf_id][0][1], rules=rules)
+                    if target_label == TraceLabel.TRUE.name:
+                        num_samples = {
+                            "negative": dtc.tree_.value[leaf_id][0][0],
+                            "positive": dtc.tree_.value[leaf_id][0][1],
+                            "total": dtc.tree_.value[leaf_id][0][0] + dtc.tree_.value[leaf_id][0][1]
+                        }
+                    else:
+                        num_samples = {
+                            "negative": dtc.tree_.value[leaf_id][0][1],
+                            "positive": dtc.tree_.value[leaf_id][0][0],
+                            "total": dtc.tree_.value[leaf_id][0][0] + dtc.tree_.value[leaf_id][0][1]
+                        }
+                    path = PathModel(
+                        impurity=dtc.tree_.impurity[leaf_id],
+                        num_samples=num_samples,
+                        rules=rules
+                    )
                     paths.append(path)
-                res[key] = sorted(paths, key=lambda path: (path.impurity, - path.num_samples), reverse=False)
+                res[key] = sorted(paths, key=lambda path: (path.impurity, - path.num_samples["total"]), reverse=False)
     return res

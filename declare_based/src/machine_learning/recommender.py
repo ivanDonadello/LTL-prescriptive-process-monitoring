@@ -5,6 +5,9 @@ from declare_based.src.machine_learning.decision_tree import *
 from declare_based.src.models import EvaluationResult
 from declare_based.src.constants import *
 
+import numpy as np
+from sklearn import metrics
+
 
 def recommend(prefix, path, rules):
     recommendation = ""
@@ -76,7 +79,6 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
         rules["vacuousSatisfaction"] = True
     else:
         rules["vacuousSatisfaction"] = False
-    print(rules["vacuousSatisfaction"])
     if labeling["labelThresholdType"] == "Label mean":
         custom_label_threshold = calc_mean_label_threshold(train_log, labeling)
     elif labeling["labelThresholdType"] == "Custom":
@@ -93,7 +95,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     print("generate test prefixes")
     test_prefixes = generate_prefixes(test_log, prefix_type)
 
-    print("generate dt input")
+    print("generate decision tree input")
     dt_input = encode_prefixes(train_log, prefixes=train_prefixes, pairs=pairs, templates=templates, rules=rules,
                                custom_label_threshold=custom_label_threshold, labeling=labeling)
 
@@ -103,8 +105,8 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     print("generate recommendations")
     recommendations = []
     eval_res = EvaluationResult()
-    print(test_prefixes.keys())
-    print(paths.keys())
+    y = []
+    pred = []
     for key in test_prefixes:
         for prefix in test_prefixes[key]:
             if key in paths:
@@ -131,9 +133,11 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                             target_label=target_label,
                             confusion_matrix=e.name,
                             impurity=path.impurity,
-                            num_samples=path.num_samples,
+                            num_samples = path.num_samples,
                             recommendation=recommendation
                         )
+                        y.append(recommendation_model.actual_label)
+                        pred.append(recommendation_model.num_samples["positive"] / recommendation_model.num_samples["total"])
                         recommendations.append(recommendation_model)
                         break
     try:
@@ -156,6 +160,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     except ZeroDivisionError:
         eval_res.fscore = 0
 
-    eval_res.auc = "-"
+    fpr, tpr, thresholds = metrics.roc_curve(np.array(y), np.array(pred), pos_label=target_label)
+    eval_res.auc = metrics.auc(fpr, tpr)
 
     return recommendations, eval_res
