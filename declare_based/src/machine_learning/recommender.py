@@ -79,23 +79,22 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
 
     target_label = labeling["targetLabel"]
 
-    print("find pairs")
     pairs = find_pairs(train_log, support_threshold)
 
-    print("generate train prefixes")
+    print("Generating train prefixes ...")
     train_prefixes = generate_prefixes(train_log, prefix_type)
 
-    print("generate test prefixes")
+    print("Generating test prefixes ...")
     test_prefixes = generate_prefixes(test_log, prefix_type)
 
-    print("generate decision tree input")
+    print("Generating decision tree input ...")
     dt_input = encode_prefixes(train_log, prefixes=train_prefixes, pairs=pairs, templates=templates, rules=rules,
                                custom_label_threshold=custom_label_threshold, labeling=labeling)
 
-    print("generate paths")
+    print("Generating paths ...")
     paths = generate_decision_tree_paths(dt_input=dt_input, target_label=target_label)
 
-    print("generate recommendations")
+    print("Generating recommendations ...")
     recommendations = []
     eval_res = EvaluationResult()
     y = []

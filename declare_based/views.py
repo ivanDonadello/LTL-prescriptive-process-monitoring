@@ -65,7 +65,9 @@ class Recommendation:
 
         train_url = "http://193.40.11.150/splits/" + str(selected_log_split_id) + "/logs/train"
         test_url = "http://193.40.11.150/splits/" + str(selected_log_split_id) + "/logs/test"
+        print("Downloading train data ...")
         train_data = requests.get(train_url, allow_redirects=True)
+        print("Downloading test data ...")
         test_data = requests.get(test_url, allow_redirects=True)
 
         if os.path.exists(settings.MEDIA_ROOT + "input/log/splits"):

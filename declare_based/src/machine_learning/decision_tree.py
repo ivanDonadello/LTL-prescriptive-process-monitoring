@@ -1,5 +1,10 @@
+import os
+import shutil
+
 import numpy as np
 import pandas as pd
+
+from django.conf import settings
 
 from sklearn import tree
 from sklearn.tree import DecisionTreeClassifier
@@ -14,6 +19,7 @@ def generate_decision_tree_paths(dt_input, target_label):
     categories = [TraceLabel.FALSE.value, TraceLabel.TRUE.value]
     res = {}
     for key in dt_input:
+        print("Prefix len: ", key)
         if dt_input[key].prefix_length > 0:
             feature_names = dt_input[key].features
             encoded_data = dt_input[key].encoded_data
@@ -29,8 +35,13 @@ def generate_decision_tree_paths(dt_input, target_label):
                                             filled=True, rounded=True, special_characters=True)
             graph = pydotplus.graph_from_dot_data(dot_data)
             Image(graph.create_png())
+            if os.path.exists(settings.MEDIA_ROOT + "output"):
+                shutil.rmtree(settings.MEDIA_ROOT + "output", ignore_errors=True)
+            os.makedirs(os.path.join(settings.MEDIA_ROOT + "output/decision_trees"))
+            graph.write_pdf(settings.MEDIA_ROOT + "output/decision_trees/decision_tree_" + key + ".pdf")
 
             # find paths
+            print("Finding decision tree paths ...")
             left = dtc.tree_.children_left
             right = dtc.tree_.children_right
             features = [feature_names[i] for i in dtc.tree_.feature]

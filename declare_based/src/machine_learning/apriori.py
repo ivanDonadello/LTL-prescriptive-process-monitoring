@@ -1,21 +1,24 @@
 from itertools import combinations
+from collections import defaultdict
 
 
-def get_num_traces_by_two_events(log, a, b):
-    num_traces_satisfied = 0
-    for trace in log:
-        a_exists = False
-        b_exists = False
-        for event in trace:
-            if not a_exists and event["concept:name"] == a:
-                a_exists = True
-            elif not b_exists and event["concept:name"] == b:
-                b_exists = True
+def get_num_traces_by_pairs(log, pairs):
+    res = defaultdict(lambda: 0, {})
+    for index, trace in enumerate(log):
+        print("Trace index: ", index)
+        for pair in pairs:
+            a_exists = False
+            b_exists = False
+            for event in trace:
+                if not a_exists and event["concept:name"] == pair[0]:
+                    a_exists = True
+                elif not b_exists and event["concept:name"] == pair[1]:
+                    b_exists = True
+                if a_exists and b_exists:
+                    break
             if a_exists and b_exists:
-                break
-        if a_exists and b_exists:
-            num_traces_satisfied += 1
-    return num_traces_satisfied
+                res[pair] += 1
+    return res
 
 
 # a-priori algorithm
@@ -24,13 +27,16 @@ def get_num_traces_by_two_events(log, a, b):
 def a_priori(log):
     num_traces = len(log)
     distinct_events = set()
-    result = {}
+    print("Finding distinct events ...")
     for trace in log:
         for event in trace:
             distinct_events.add(event["concept:name"])
+    print("Making event pairs ...")
     pairs = list(combinations(distinct_events, 2))
-    for pair in pairs:
-        result[pair] = get_num_traces_by_two_events(log, pair[0], pair[1]) / num_traces
+    print("Calculating frequency of pairs ...")
+    result = get_num_traces_by_pairs(log, pairs)
+    for key in result:
+        result[key] /= num_traces
     return result
 
 

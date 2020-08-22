@@ -6,9 +6,11 @@ from declare_based.src.models.DTInput import *
 def encode_prefixes(log, prefixes, pairs, templates, rules, custom_label_threshold, labeling):
     res = {}
     for key in prefixes:
+        print("Prefix len: ", key)
         features = []
         encoded_data = []
         for prefix in prefixes[key]:
+            print("Trace index of prefix: ", prefix.trace_num)
             prefix_result = {}
             for (a, b) in pairs:
                 for template in templates:

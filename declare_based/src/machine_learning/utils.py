@@ -5,31 +5,34 @@ def generate_prefixes(log, prefix_type):
     def all(n):
         prefixes = {"ALL": []}
         for index, trace in enumerate(log):
+            print("Trace index: ", index)
             events = []
             for event in trace:
                 events.append(event)
-                prefixModel = Prefix(trace.attributes["concept:name"], index, events.copy())
-                prefixes["ALL"].append(prefixModel)
+                prefix_model = Prefix(trace.attributes["concept:name"], index, events.copy())
+                prefixes["ALL"].append(prefix_model)
                 if len(events) == n:
                     break
         return prefixes
 
     def only(n):
-        prefixes = {"ONLY": []}
+        prefixes = {n: []}
         for index, trace in enumerate(log):
+            print("Trace index: ", index)
             if len(trace) >= n:
                 events = []
                 for event in trace:
                     events.append(event)
                     if len(events) == n:
                         prefix_model = Prefix(trace.attributes["concept:name"], index, events.copy())
-                        prefixes["ONLY"].append(prefix_model)
+                        prefixes[n].append(prefix_model)
                         break
         return prefixes
 
     def up_to(n):
         prefixes = {}
         for index, trace in enumerate(log):
+            print("Trace index: ", index)
             events = []
             for event in trace:
                 events.append(event)
