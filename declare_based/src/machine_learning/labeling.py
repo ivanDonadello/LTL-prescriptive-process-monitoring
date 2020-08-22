@@ -14,10 +14,10 @@ def calc_mean_label_threshold(log, labeling):
     return mean_label_threshold
 
 
-def generate_label(trace, prefix, custom_label_threshold, labeling):
+def generate_label(trace, custom_label_threshold, labeling):
     if labeling["labelType"] == "Trace duration":
         time_diff = (
-                prefix.events[len(prefix.events) - 1]["time:timestamp"] - prefix.events[0]["time:timestamp"]
+                trace[len(trace) - 1]["time:timestamp"] - trace[0]["time:timestamp"]
         ).total_seconds()
         if time_diff < custom_label_threshold:
             return TraceLabel.TRUE
@@ -32,5 +32,5 @@ def generate_label(trace, prefix, custom_label_threshold, labeling):
 def generate_labels(log, prefixes, custom_label_threshold, labeling):
     result = []
     for prefix in prefixes:
-        result.append(generate_label(log[prefix.trace_num], prefix, custom_label_threshold, labeling).value)
+        result.append(generate_label(log[prefix.trace_num], custom_label_threshold, labeling).value)
     return result

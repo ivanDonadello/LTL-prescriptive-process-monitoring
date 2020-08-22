@@ -50,26 +50,19 @@ def evaluate(trace, prefix, target_label, path, custom_label_threshold, rules, l
             is_compliant = False
             break
 
-    label = generate_label(trace, prefix, custom_label_threshold, labeling)
+    label = generate_label(trace, custom_label_threshold, labeling)
 
     if target_label == TraceLabel.TRUE.name:
         if is_compliant:
-            if label == TraceLabel.TRUE:
-                return ConfusionMatrix.TP
-            return ConfusionMatrix.FP
+            cm = ConfusionMatrix.TP if label == TraceLabel.TRUE else ConfusionMatrix.FP
         else:
-            if label == TraceLabel.TRUE:
-                return ConfusionMatrix.FN
-            return ConfusionMatrix.TN
+            cm = ConfusionMatrix.FN if label == TraceLabel.TRUE else ConfusionMatrix.TN
     else:
         if is_compliant:
-            if label == TraceLabel.TRUE:
-                return ConfusionMatrix.FN
-            return ConfusionMatrix.TN
+            cm = ConfusionMatrix.FN if label == TraceLabel.TRUE else ConfusionMatrix.TN
         else:
-            if label == TraceLabel.TRUE:
-                return ConfusionMatrix.TP
-            return ConfusionMatrix.FP
+            cm = ConfusionMatrix.TP if label == TraceLabel.TRUE else ConfusionMatrix.FP
+    return is_compliant, cm
 
 
 def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefix_type, support_threshold, templates,
@@ -114,7 +107,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                     recommendation = recommend(prefix.events, path, rules)
                     if recommendation != "Contradiction":
                         trace = test_log[prefix.trace_num]
-                        e = evaluate(trace, prefix, target_label, path, custom_label_threshold, rules, labeling)
+                        is_compliant, e = evaluate(trace, prefix, target_label, path, custom_label_threshold, rules, labeling)
                         if e == ConfusionMatrix.TP:
                             eval_res.tp += 1
                         elif e == ConfusionMatrix.FP:
@@ -129,8 +122,9 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                             prefix_len=len(prefix.events),
                             complete_trace=generate_prefix_path(test_log[prefix.trace_num]),
                             current_prefix=generate_prefix_path(prefix.events),
-                            actual_label=generate_label(trace, prefix, custom_label_threshold, labeling).name,
+                            actual_label=generate_label(trace, custom_label_threshold, labeling).name,
                             target_label=target_label,
+                            is_compliant=str(is_compliant).upper(),
                             confusion_matrix=e.name,
                             impurity=path.impurity,
                             num_samples = path.num_samples,
