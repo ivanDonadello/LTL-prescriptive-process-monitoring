@@ -8,6 +8,8 @@ from declare_based.src.constants import *
 import numpy as np
 from sklearn import metrics
 
+import csv
+
 
 def recommend(prefix, path, rules):
     recommendation = ""
@@ -156,4 +158,65 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     fpr, tpr, thresholds = metrics.roc_curve(np.array(y), np.array(pred), pos_label=target_label)
     eval_res.auc = metrics.auc(fpr, tpr)
 
+    print("Writing evaluation result into csv file")
+    write_evaluation_to_csv(eval_res)
+
+    print("Writing recommendations into csv file")
+    write_recommendations_to_csv(recommendations)
+
     return recommendations, eval_res
+
+
+def write_evaluation_to_csv(e):
+    os.makedirs(os.path.join(settings.MEDIA_ROOT + "output/result"))
+    csv_file = settings.MEDIA_ROOT + "output/result/evaluation.csv"
+    fieldnames = ["tp", "fp", "tn", "fn", "precision", "recall", "accuracy", "fscore", "auc"]
+    values = {
+        "tp": e.tp,
+        "fp": e.fp,
+        "tn": e.tn,
+        "fn": e.fn,
+        "precision": e.precision,
+        "recall": e.recall,
+        "accuracy": e.accuracy,
+        "fscore": e.fscore,
+        "auc": e.auc
+    }
+    try:
+        with open(csv_file, 'w') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerow(values)
+    except IOError:
+        print("I/O error")
+
+
+def write_recommendations_to_csv(recommendations):
+    csv_file = settings.MEDIA_ROOT + "output/result/recommendations.csv"
+    fieldnames = ["Trace id", "Prefix len", "Complete trace", "Current prefix", "Recommendation", "Actual label", "Target label", "Compliant", "Confusion matrix", "Impurity", "Num samples"]
+    values = []
+    for r in recommendations:
+        values.append(
+            {
+                "Trace id": r.trace_id,
+                "Prefix len": r.prefix_len,
+                "Complete trace": r.complete_trace,
+                "Current prefix": r.current_prefix,
+                "Recommendation": r.recommendation,
+                "Actual label": r.actual_label,
+                "Target label": r.target_label,
+                "Compliant": r.is_compliant,
+                "Confusion matrix": r.confusion_matrix,
+                "Impurity": r.impurity,
+                "Num samples": r.num_samples["total"]
+            }
+        )
+
+    try:
+        with open(csv_file, 'w') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for value in values:
+                writer.writerow(value)
+    except IOError:
+        print("I/O error")
