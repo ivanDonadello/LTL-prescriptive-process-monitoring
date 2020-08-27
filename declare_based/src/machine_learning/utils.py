@@ -1,4 +1,5 @@
 from declare_based.src.models.Prefix import *
+from declare_based.src.enums import PrefixType
 
 
 def generate_prefixes(log, prefix_type):
@@ -46,9 +47,9 @@ def generate_prefixes(log, prefix_type):
         return prefixes
 
     n = int(prefix_type["length"])
-    if prefix_type["type"] == "ONLY":
+    if prefix_type["type"] == PrefixType.ONLY.value:
         return only(n)
-    elif prefix_type["type"] == "UPTO":
+    elif prefix_type["type"] == PrefixType.UPTO.value:
         return up_to(n)
     return all(n)
 

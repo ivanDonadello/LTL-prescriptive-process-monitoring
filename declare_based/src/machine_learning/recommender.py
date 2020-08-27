@@ -41,7 +41,7 @@ def recommend(prefix, path, rules):
     return recommendation
 
 
-def evaluate(trace, prefix, target_label, path, custom_label_threshold, rules, labeling):
+def evaluate(trace, prefix, target_label, path, rules, labeling):
     is_compliant = True
     for rule in path.rules:
         method, state = rule
@@ -52,7 +52,7 @@ def evaluate(trace, prefix, target_label, path, custom_label_threshold, rules, l
             is_compliant = False
             break
 
-    label = generate_label(trace, custom_label_threshold, labeling)
+    label = generate_label(trace, labeling)
 
     if target_label == TraceLabel.TRUE.name:
         if is_compliant:
@@ -69,15 +69,17 @@ def evaluate(trace, prefix, target_label, path, custom_label_threshold, rules, l
 
 def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefix_type, support_threshold, templates,
                                             rules):
-    custom_label_threshold = 0.0
     if rules["vacuousSatisfaction"] == "TRUE":
         rules["vacuousSatisfaction"] = True
     else:
         rules["vacuousSatisfaction"] = False
-    if labeling["labelThresholdType"] == "Label mean":
-        custom_label_threshold = calc_mean_label_threshold(train_log, labeling)
-    elif labeling["labelThresholdType"] == "Custom":
-        custom_label_threshold = float(labeling["customLabelThreshold"])
+
+    if labeling["labelThresholdType"] == LabelThresholdType.LABEL_MEAN.value:
+        labeling["customLabelThreshold"] = calc_mean_label_threshold(train_log, labeling)
+    elif labeling["labelThresholdType"] == LabelThresholdType.CUSTOM.value:
+        labeling["customLabelThreshold"] = float(labeling["customLabelThreshold"])
+    else:
+        labeling["customLabelThreshold"] = None
 
     target_label = labeling["targetLabel"]
 
@@ -90,8 +92,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     test_prefixes = generate_prefixes(test_log, prefix_type)
 
     print("Generating decision tree input ...")
-    dt_input = encode_prefixes(train_log, prefixes=train_prefixes, pairs=pairs, templates=templates, rules=rules,
-                               custom_label_threshold=custom_label_threshold, labeling=labeling)
+    dt_input = encode_prefixes(train_log, prefixes=train_prefixes, pairs=pairs, templates=templates, rules=rules, labeling=labeling)
 
     print("Generating paths ...")
     paths = generate_decision_tree_paths(dt_input=dt_input, target_label=target_label)
@@ -108,7 +109,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                     recommendation = recommend(prefix.events, path, rules)
                     if recommendation != "Contradiction":
                         trace = test_log[prefix.trace_num]
-                        is_compliant, e = evaluate(trace, prefix, target_label, path, custom_label_threshold, rules, labeling)
+                        is_compliant, e = evaluate(trace, prefix, target_label, path, rules, labeling)
                         if e == ConfusionMatrix.TP:
                             eval_res.tp += 1
                         elif e == ConfusionMatrix.FP:
@@ -123,7 +124,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                             prefix_len=len(prefix.events),
                             complete_trace=generate_prefix_path(test_log[prefix.trace_num]),
                             current_prefix=generate_prefix_path(prefix.events),
-                            actual_label=generate_label(trace, custom_label_threshold, labeling).name,
+                            actual_label=generate_label(trace, labeling).name,
                             target_label=target_label,
                             is_compliant=str(is_compliant).upper(),
                             confusion_matrix=e.name,
