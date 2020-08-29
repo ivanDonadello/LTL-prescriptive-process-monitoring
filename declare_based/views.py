@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from declare_based.src.parsers import *
 from declare_based.src.machine_learning import *
@@ -70,9 +69,11 @@ class Recommendation:
         print("Downloading test data ...")
         test_data = requests.get(test_url, allow_redirects=True)
 
-        if os.path.exists(settings.MEDIA_ROOT + "input/log/splits"):
-            shutil.rmtree(settings.MEDIA_ROOT + "input/log/splits", ignore_errors=True)
-        os.makedirs(os.path.join(settings.MEDIA_ROOT + "input/log/splits/" + str(selected_log_split_id) + "/"))
+        shutil.rmtree(settings.MEDIA_ROOT + "input", ignore_errors=True)
+        shutil.rmtree(settings.MEDIA_ROOT + "output", ignore_errors=True)
+
+        os.makedirs(os.path.join(settings.MEDIA_ROOT + "output/result"))
+        os.makedirs(os.path.join(settings.MEDIA_ROOT + "input/log/splits/" + str(selected_log_split_id)))
         train_path = settings.MEDIA_ROOT + "input/log/splits/" + str(selected_log_split_id) + "/train.xes"
         test_path = settings.MEDIA_ROOT + "input/log/splits/" + str(selected_log_split_id) + "/test.xes"
 

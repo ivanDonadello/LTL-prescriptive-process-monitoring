@@ -3,18 +3,6 @@ from declare_based.src.enums import PrefixType
 
 
 def generate_prefixes(log, prefix_type):
-    def all(n):
-        prefixes = {"ALL": []}
-        for index, trace in enumerate(log):
-            print("Trace index: ", index)
-            events = []
-            for event in trace:
-                events.append(event)
-                prefix_model = Prefix(trace.attributes["concept:name"], index, events.copy())
-                prefixes["ALL"].append(prefix_model)
-                if len(events) == n:
-                    break
-        return prefixes
 
     def only(n):
         prefixes = {n: []}
@@ -31,17 +19,14 @@ def generate_prefixes(log, prefix_type):
         return prefixes
 
     def up_to(n):
-        prefixes = {}
+        prefixes = {"UPTO": []}
         for index, trace in enumerate(log):
             print("Trace index: ", index)
             events = []
             for event in trace:
                 events.append(event)
-                prefixModel = Prefix(trace.attributes["concept:name"], index, events.copy())
-                key = len(prefixModel.events)
-                if key not in prefixes:
-                    prefixes[key] = []
-                prefixes[key].append(prefixModel)
+                prefix_model = Prefix(trace.attributes["concept:name"], index, events.copy())
+                prefixes["UPTO"].append(prefix_model)
                 if len(events) == n:
                     break
         return prefixes

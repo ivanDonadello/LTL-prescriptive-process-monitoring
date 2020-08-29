@@ -85,17 +85,14 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
 
     pairs = find_pairs(train_log, support_threshold)
 
-    print("Generating train prefixes ...")
-    train_prefixes = generate_prefixes(train_log, prefix_type)
-
-    print("Generating test prefixes ...")
-    test_prefixes = generate_prefixes(test_log, prefix_type)
-
     print("Generating decision tree input ...")
-    dt_input = encode_prefixes(train_log, prefixes=train_prefixes, pairs=pairs, templates=templates, rules=rules, labeling=labeling)
+    dt_input = encode_traces(train_log, pairs=pairs, templates=templates, rules=rules, labeling=labeling)
 
     print("Generating paths ...")
     paths = generate_decision_tree_paths(dt_input=dt_input, target_label=target_label)
+
+    print("Generating test prefixes ...")
+    test_prefixes = generate_prefixes(test_log, prefix_type)
 
     print("Generating recommendations ...")
     recommendations = []
@@ -104,38 +101,44 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     pred = []
     for key in test_prefixes:
         for prefix in test_prefixes[key]:
-            if key in paths:
-                for path in paths[key]:
-                    recommendation = recommend(prefix.events, path, rules)
-                    if recommendation != "Contradiction":
-                        trace = test_log[prefix.trace_num]
-                        is_compliant, e = evaluate(trace, prefix, target_label, path, rules, labeling)
-                        if e == ConfusionMatrix.TP:
-                            eval_res.tp += 1
-                        elif e == ConfusionMatrix.FP:
-                            eval_res.fp += 1
-                        elif e == ConfusionMatrix.FN:
-                            eval_res.fn += 1
-                        elif e == ConfusionMatrix.TN:
-                            eval_res.tn += 1
+            selected_path = None
+            for index, path in enumerate(paths):
 
-                        recommendation_model = Recommendation(
-                            trace_id=prefix.trace_id,
-                            prefix_len=len(prefix.events),
-                            complete_trace=generate_prefix_path(test_log[prefix.trace_num]),
-                            current_prefix=generate_prefix_path(prefix.events),
-                            actual_label=generate_label(trace, labeling).name,
-                            target_label=target_label,
-                            is_compliant=str(is_compliant).upper(),
-                            confusion_matrix=e.name,
-                            impurity=path.impurity,
-                            num_samples = path.num_samples,
-                            recommendation=recommendation
-                        )
-                        y.append(recommendation_model.actual_label)
-                        pred.append(recommendation_model.num_samples["positive"] / recommendation_model.num_samples["total"])
-                        recommendations.append(recommendation_model)
-                        break
+                if selected_path and (path.impurity != selected_path.impurity or path.num_samples != selected_path.num_samples):
+                    break
+
+                recommendation = recommend(prefix.events, path, rules)
+                if recommendation != "Contradiction" and recommendation != "":
+                    selected_path = path
+                    trace = test_log[prefix.trace_num]
+                    is_compliant, e = evaluate(trace, prefix, target_label, path, rules, labeling)
+                    if e == ConfusionMatrix.TP:
+                        eval_res.tp += 1
+                    elif e == ConfusionMatrix.FP:
+                        eval_res.fp += 1
+                    elif e == ConfusionMatrix.FN:
+                        eval_res.fn += 1
+                    elif e == ConfusionMatrix.TN:
+                        eval_res.tn += 1
+
+                    recommendation_model = Recommendation(
+                        trace_id=prefix.trace_id,
+                        prefix_len=len(prefix.events),
+                        complete_trace=generate_prefix_path(test_log[prefix.trace_num]),
+                        current_prefix=generate_prefix_path(prefix.events),
+                        actual_label=generate_label(trace, labeling).name,
+                        target_label=target_label,
+                        is_compliant=str(is_compliant).upper(),
+                        confusion_matrix=e.name,
+                        impurity=path.impurity,
+                        num_samples=path.num_samples,
+                        recommendation=recommendation
+                    )
+                    y.append(recommendation_model.actual_label)
+                    pred.append(
+                        recommendation_model.num_samples["positive"] / recommendation_model.num_samples["total"])
+                    recommendations.append(recommendation_model)
+
     try:
         eval_res.precision = eval_res.tp / (eval_res.tp + eval_res.fp)
     except ZeroDivisionError:
@@ -156,8 +159,11 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     except ZeroDivisionError:
         eval_res.fscore = 0
 
-    fpr, tpr, thresholds = metrics.roc_curve(np.array(y), np.array(pred), pos_label=target_label)
-    eval_res.auc = metrics.auc(fpr, tpr)
+    try:
+        fpr, tpr, thresholds = metrics.roc_curve(np.array(y), np.array(pred), pos_label=target_label)
+        eval_res.auc = metrics.auc(fpr, tpr)
+    except:
+        eval_res.auc = 0
 
     print("Writing evaluation result into csv file")
     write_evaluation_to_csv(eval_res)
@@ -169,7 +175,6 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
 
 
 def write_evaluation_to_csv(e):
-    os.makedirs(os.path.join(settings.MEDIA_ROOT + "output/result"))
     csv_file = settings.MEDIA_ROOT + "output/result/evaluation.csv"
     fieldnames = ["tp", "fp", "tn", "fn", "precision", "recall", "accuracy", "fscore", "auc"]
     values = {
@@ -194,7 +199,8 @@ def write_evaluation_to_csv(e):
 
 def write_recommendations_to_csv(recommendations):
     csv_file = settings.MEDIA_ROOT + "output/result/recommendations.csv"
-    fieldnames = ["Trace id", "Prefix len", "Complete trace", "Current prefix", "Recommendation", "Actual label", "Target label", "Compliant", "Confusion matrix", "Impurity", "Num samples"]
+    fieldnames = ["Trace id", "Prefix len", "Complete trace", "Current prefix", "Recommendation", "Actual label",
+                  "Target label", "Compliant", "Confusion matrix", "Impurity", "Num samples"]
     values = []
     for r in recommendations:
         values.append(

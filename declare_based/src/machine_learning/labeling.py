@@ -33,8 +33,8 @@ def generate_label(trace, labeling):
         return TraceLabel.FALSE
 
 
-def generate_labels(log, prefixes, labeling):
+def generate_labels(log, labeling):
     result = []
-    for prefix in prefixes:
-        result.append(generate_label(log[prefix.trace_num], labeling).value)
+    for trace in log:
+        result.append(generate_label(trace, labeling).value)
     return result
