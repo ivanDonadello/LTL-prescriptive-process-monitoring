@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import Enum, auto
 
 
 class LabelThresholdType(Enum):
-    LABEL_MEAN = "Label mean"
-    CUSTOM = "Custom"
+    LABEL_MEAN = auto()
+    CUSTOM = auto()

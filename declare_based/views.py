@@ -1,3 +1,4 @@
+from declare_based.src.enums.ConstraintChecker import ConstraintChecker
 from django.views.decorators.csrf import csrf_exempt
 from declare_based.src.parsers import *
 from declare_based.src.machine_learning import *
@@ -7,87 +8,52 @@ from rest_framework.response import Response
 
 from pm4py.objects.log.importer.xes import factory as xes_import_factory
 
-import os
-import json
-import shutil
-import requests
-
-
-class DeclareTemplates:
-    @csrf_exempt
-    @api_view(['POST'])
-    def generate(request):
-        log = request.data.get("log", None)
-        declare = request.data.get("declare", None)
-        done = json.loads(request.data.get('done', None))
-
-        log_path = settings.MEDIA_ROOT + "input/log/" + log
-        declare_path = settings.MEDIA_ROOT + "input/declare/" + declare
-
-        log = xes_import_factory.apply(log_path)
-        declare = parse_decl(declare_path)
-
-        activities = declare["activities"]
-        result = {}
-        for key, rules in declare["rules"].items():
-            if key == INIT:
-                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], rules["activation_rules"]).__dict__
-            elif key in [EXISTENCE, ABSENCE, EXACTLY]:
-                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], rules["activation_rules"],
-                                                  rules["n"]).__dict__
-            elif key in [CHOICE, EXCLUSIVE_CHOICE]:
-                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], activities["T"],
-                                                  rules["activation_rules"]).__dict__
-            else:
-                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], activities["T"],
-                                                  rules["activation_rules"],
-                                                  rules["correlation_rules"]).__dict__
-        context = {"result": result}
-        return Response(context, status=status.HTTP_200_OK)
-
-
 class Recommendation:
     @csrf_exempt
-    @api_view(['POST'])
+    @api_view(['GET'])
     def recommend(request):
-
-        selected_log_split_id = request.data.get("selectedLogSplitId", None)
-        labeling = request.data.get("labeling", None)
-        prefix_type = request.data.get("prefix", None)
-        thresholds = request.data.get("thresholds", None)
-        templates = request.data.get("templates", None)
-        rules = request.data.get("rules", None)
-        support_threshold = thresholds["supportThreshold"]
+        labeling = {
+            "label_type": LabelType.TRACE_DURATION,
+            "label_threshold_type": LabelThresholdType.LABEL_MEAN,
+            "target_label": TraceLabel.TRUE,
+            "trace_attribute": "",
+            "custom_label_threshold": 0.0
+        }
+        prefix_type = {
+            "type": PrefixType.UPTO,
+            "length": 5
+        }
+        templates = [
+            ConstraintChecker.RESPONDED_EXISTENCE,
+            ConstraintChecker.RESPONSE,
+            ConstraintChecker.ALTERNATE_RESPONSE,
+            ConstraintChecker.CHAIN_RESPONSE,
+            ConstraintChecker.PRECEDENCE,
+            ConstraintChecker.ALTERNATE_PRECEDENCE,
+            ConstraintChecker.CHAIN_PRECEDENCE,
+            ConstraintChecker.NOT_RESPONDED_EXISTENCE,
+            ConstraintChecker.NOT_RESPONSE,
+            ConstraintChecker.NOT_CHAIN_RESPONSE,
+            ConstraintChecker.NOT_PRECEDENCE,
+            ConstraintChecker.NOT_CHAIN_PRECEDENCE
+        ]
+        rules = {
+            "vacuous_satisfaction": True,
+            "activation": "",
+            "correlation": ""
+        }
+        support_threshold = 0.75
 
         rules["activation"] = generate_rules(rules["activation"])
         rules["correlation"] = generate_rules(rules["correlation"])
-
-        train_url = "http://193.40.11.150/splits/" + str(selected_log_split_id) + "/logs/train"
-        test_url = "http://193.40.11.150/splits/" + str(selected_log_split_id) + "/logs/test"
-        print("Downloading train data ...")
-        train_data = requests.get(train_url, allow_redirects=True)
-        print("Downloading test data ...")
-        test_data = requests.get(test_url, allow_redirects=True)
-
-        shutil.rmtree(settings.MEDIA_ROOT + "input", ignore_errors=True)
-        shutil.rmtree(settings.MEDIA_ROOT + "output", ignore_errors=True)
-
-        os.makedirs(os.path.join(settings.MEDIA_ROOT + "output/result"))
-        os.makedirs(os.path.join(settings.MEDIA_ROOT + "input/log/splits/" + str(selected_log_split_id)))
-        train_path = settings.MEDIA_ROOT + "input/log/splits/" + str(selected_log_split_id) + "/train.xes"
-        test_path = settings.MEDIA_ROOT + "input/log/splits/" + str(selected_log_split_id) + "/test.xes"
-
-        open(train_path, 'wb').write(train_data.content)
-        open(test_path, 'wb').write(test_data.content)
-
-        train_log = xes_import_factory.apply(train_path)
-        test_log = xes_import_factory.apply(test_path)
+        
+        train_log = xes_import_factory.apply(settings.MEDIA_ROOT + "input/log-splits/train.xes")
+        test_log = xes_import_factory.apply(settings.MEDIA_ROOT + "input/log-splits/test.xes")
 
         recommendations, evaluation = generate_recommendations_and_evaluation(test_log=test_log, train_log=train_log,
                                                                               labeling=labeling,
                                                                               prefix_type=prefix_type,
-                                                                              support_threshold=float(
-                                                                                  support_threshold),
+                                                                              support_threshold=support_threshold,
                                                                               templates=templates,
                                                                               rules=rules)
         res = []

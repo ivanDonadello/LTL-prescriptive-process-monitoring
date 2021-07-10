@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import Enum, auto
 
 
 class LabelType(Enum):
-    DEFAULT = "Default"
-    TRACE_DURATION = "Trace duration"
-    TRACE_NUMERICAL_ATTRIBUTES = "Trace numerical attributes"
+    DEFAULT = auto()
+    TRACE_DURATION = auto()
+    TRACE_NUMERICAL_ATTRIBUTES = auto()

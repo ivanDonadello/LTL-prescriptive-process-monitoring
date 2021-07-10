@@ -31,12 +31,11 @@ def generate_prefixes(log, prefix_type):
                     break
         return prefixes
 
-    n = int(prefix_type["length"])
-    if prefix_type["type"] == PrefixType.ONLY.value:
+    n = prefix_type["length"]
+    if prefix_type["type"] == PrefixType.ONLY:
         return only(n)
-    elif prefix_type["type"] == PrefixType.UPTO.value:
+    else:
         return up_to(n)
-    return all(n)
 
 
 def parse_method(method):

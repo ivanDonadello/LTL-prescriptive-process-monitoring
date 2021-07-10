@@ -3,11 +3,11 @@ from declare_based.src.enums import *
 
 def calc_mean_label_threshold(log, labeling):
     total = 0
-    if labeling["labelType"] == LabelType.TRACE_DURATION.value:
+    if labeling["label_type"] == LabelType.TRACE_DURATION:
         for trace in log:
             total += (trace[len(trace) - 1]["time:timestamp"] - trace[0]["time:timestamp"]).total_seconds()
-    elif labeling["labelType"] == LabelType.TRACE_NUMERICAL_ATTRIBUTES.value:
-        trace_attribute = labeling["traceAttribute"]
+    elif labeling["label_type"] == LabelType.TRACE_NUMERICAL_ATTRIBUTES:
+        trace_attribute = labeling["trace_attribute"]
         for trace in log:
             total += float(trace.attributes[trace_attribute])
     mean_label_threshold = total / len(log)
@@ -15,20 +15,20 @@ def calc_mean_label_threshold(log, labeling):
 
 
 def generate_label(trace, labeling):
-    if labeling["labelType"] == LabelType.DEFAULT.value:
+    if labeling["label_type"] == LabelType.DEFAULT:
         if trace.attributes["label"] == "true":
             return TraceLabel.TRUE
         return TraceLabel.FALSE
-    elif labeling["labelType"] == LabelType.TRACE_DURATION.value:
+    elif labeling["label_type"] == LabelType.TRACE_DURATION:
         time_diff = (
                 trace[len(trace) - 1]["time:timestamp"] - trace[0]["time:timestamp"]
         ).total_seconds()
-        if time_diff < labeling["customLabelThreshold"]:
+        if time_diff < labeling["custom_label_threshold"]:
             return TraceLabel.TRUE
         return TraceLabel.FALSE
-    elif labeling["labelType"] == LabelType.TRACE_NUMERICAL_ATTRIBUTES.value:
-        trace_attribute = labeling["traceAttribute"]
-        if float(trace.attributes[trace_attribute]) < labeling["customLabelThreshold"]:
+    elif labeling["label_type"] == LabelType.TRACE_NUMERICAL_ATTRIBUTES:
+        trace_attribute = labeling["trace_attribute"]
+        if float(trace.attributes[trace_attribute]) < labeling["custom_label_threshold"]:
             return TraceLabel.TRUE
         return TraceLabel.FALSE
 

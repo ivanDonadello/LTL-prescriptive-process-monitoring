@@ -23,7 +23,7 @@ def generate_decision_tree_paths(dt_input, target_label):
     right = dtc.tree_.children_right
     features = [dt_input.features[i] for i in dtc.tree_.feature]
     leaf_ids = np.argwhere(left == -1)[:, 0]
-    if target_label == TraceLabel.TRUE.name:
+    if target_label == TraceLabel.TRUE:
         leaf_ids_positive = filter(
             lambda leaf_id: dtc.tree_.value[leaf_id][0][0] < dtc.tree_.value[leaf_id][0][1], leaf_ids)
     else:
@@ -53,7 +53,7 @@ def generate_decision_tree_paths(dt_input, target_label):
         rules = []
         for node in recurse(left, right, leaf_id):
             rules.append(node)
-        if target_label == TraceLabel.TRUE.name:
+        if target_label == TraceLabel.TRUE:
             num_samples = {
                 "negative": dtc.tree_.value[leaf_id][0][0],
                 "positive": dtc.tree_.value[leaf_id][0][1],
