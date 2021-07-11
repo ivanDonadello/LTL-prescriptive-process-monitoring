@@ -1,7 +1,6 @@
 from declare_based.src.constants import *
 import re
 
-
 def generate_rules(rules):
     if rules.strip() == "":
         rules = "True"
@@ -25,7 +24,6 @@ def generate_rules(rules):
     rules = " ".join(words)
     return rules
 
-
 def parse_decl(path):
     fo = open(path, "r+")
     lines = fo.readlines()
@@ -36,18 +34,18 @@ def parse_decl(path):
                 result["activities"]["A"] = line.split()[1]
             else:
                 result["activities"]["B"] = line.split()[1]
-        elif (line.startswith(INIT)
-              or line.startswith(CHOICE)
-              or line.startswith(EXCLUSIVE_CHOICE)):
+        elif (line.startswith(ConstraintChecker.INIT.value)
+              or line.startswith(ConstraintChecker.CHOICE.value)
+              or line.startswith(ConstraintChecker.EXCLUSIVE_CHOICE.value)):
             key = line.split("[")[0].strip()
             result["rules"][key] = {
                 "activation_rules": generate_rules(line.split("|")[1]),
                 "correlation_rules": None,
                 "n": None
             }
-        elif (line.startswith(EXISTENCE)
-              or line.startswith(ABSENCE)
-              or line.startswith(EXACTLY)):
+        elif (line.startswith(ConstraintChecker.EXISTENCE.value)
+              or line.startswith(ConstraintChecker.ABSENCE.value)
+              or line.startswith(ConstraintChecker.EXACTLY.value)):
             key = line.split("[")[0].strip()
             n = 1
             if any(map(str.isdigit, key)):
@@ -60,18 +58,18 @@ def parse_decl(path):
                 "correlation_rules": None,
                 "n": n
             }
-        elif (line.startswith(RESPONDED_EXISTENCE)
-              or line.startswith(RESPONSE)
-              or line.startswith(ALTERNATE_RESPONSE)
-              or line.startswith(CHAIN_RESPONSE)
-              or line.startswith(PRECEDENCE)
-              or line.startswith(ALTERNATE_PRECEDENCE)
-              or line.startswith(CHAIN_PRECEDENCE)
-              or line.startswith(NOT_RESPONDED_EXISTENCE)
-              or line.startswith(NOT_RESPONSE)
-              or line.startswith(NOT_CHAIN_RESPONSE)
-              or line.startswith(NOT_PRECEDENCE)
-              or line.startswith(NOT_CHAIN_PRECEDENCE)):
+        elif (line.startswith(ConstraintChecker.RESPONDED_EXISTENCE.value)
+              or line.startswith(ConstraintChecker.RESPONSE.value)
+              or line.startswith(ConstraintChecker.ALTERNATE_RESPONSE.value)
+              or line.startswith(ConstraintChecker.CHAIN_RESPONSE.value)
+              or line.startswith(ConstraintChecker.PRECEDENCE.value)
+              or line.startswith(ConstraintChecker.ALTERNATE_PRECEDENCE.value)
+              or line.startswith(ConstraintChecker.CHAIN_PRECEDENCE.value)
+              or line.startswith(ConstraintChecker.NOT_RESPONDED_EXISTENCE.value)
+              or line.startswith(ConstraintChecker.NOT_RESPONSE.value)
+              or line.startswith(ConstraintChecker.NOT_CHAIN_RESPONSE.value)
+              or line.startswith(ConstraintChecker.NOT_PRECEDENCE.value)
+              or line.startswith(ConstraintChecker.NOT_CHAIN_PRECEDENCE.value)):
             key = line.split("[")[0].strip()
             result["rules"][key] = {
                 "activation_rules": generate_rules(line.split("|")[1]),

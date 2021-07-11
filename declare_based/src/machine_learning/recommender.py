@@ -17,7 +17,7 @@ def recommend(prefix, path, rules):
         method, state = rule
         method_name, method_params = parse_method(method)
         result = DT_TRACE_METHODS[method_name](prefix, False, method_params[0], method_params[1], rules["activation"],
-                                               rules["correlation"], rules["vacuousSatisfaction"])
+                                               rules["correlation"], rules["vacuous_satisfaction"])
         if state == TraceState.SATISFIED:
             if result.state == TraceState.VIOLATED:
                 recommendation = "Contradiction"
@@ -47,14 +47,14 @@ def evaluate(trace, prefix, target_label, path, rules, labeling):
         method, state = rule
         method_name, method_params = parse_method(method)
         result = DT_TRACE_METHODS[method_name](prefix.events, True, method_params[0], method_params[1],
-                                               rules["activation"], rules["correlation"], rules["vacuousSatisfaction"])
+                                               rules["activation"], rules["correlation"], rules["vacuous_satisfaction"])
         if state != result.state:
             is_compliant = False
             break
 
     label = generate_label(trace, labeling)
 
-    if target_label == TraceLabel.TRUE.name:
+    if target_label == TraceLabel.TRUE:
         if is_compliant:
             cm = ConfusionMatrix.TP if label == TraceLabel.TRUE else ConfusionMatrix.FP
         else:
@@ -69,19 +69,10 @@ def evaluate(trace, prefix, target_label, path, rules, labeling):
 
 def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefix_type, support_threshold, templates,
                                             rules):
-    if rules["vacuousSatisfaction"] == "TRUE":
-        rules["vacuousSatisfaction"] = True
-    else:
-        rules["vacuousSatisfaction"] = False
+    if labeling["label_threshold_type"] == LabelThresholdType.LABEL_MEAN:
+        labeling["custom_label_threshold"] = calc_mean_label_threshold(train_log, labeling)
 
-    if labeling["labelThresholdType"] == LabelThresholdType.LABEL_MEAN.value:
-        labeling["customLabelThreshold"] = calc_mean_label_threshold(train_log, labeling)
-    elif labeling["labelThresholdType"] == LabelThresholdType.CUSTOM.value:
-        labeling["customLabelThreshold"] = float(labeling["customLabelThreshold"])
-    else:
-        labeling["customLabelThreshold"] = None
-
-    target_label = labeling["targetLabel"]
+    target_label = labeling["target_label"]
 
     pairs = find_pairs(train_log, support_threshold)
 
@@ -127,7 +118,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                         complete_trace=generate_prefix_path(test_log[prefix.trace_num]),
                         current_prefix=generate_prefix_path(prefix.events),
                         actual_label=generate_label(trace, labeling).name,
-                        target_label=target_label,
+                        target_label=target_label.name,
                         is_compliant=str(is_compliant).upper(),
                         confusion_matrix=e.name,
                         impurity=path.impurity,
@@ -160,7 +151,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
         eval_res.fscore = 0
 
     try:
-        fpr, tpr, thresholds = metrics.roc_curve(np.array(y), np.array(pred), pos_label=target_label)
+        fpr, tpr, thresholds = metrics.roc_curve(np.array(y), np.array(pred), pos_label=target_label.name)
         eval_res.auc = metrics.auc(fpr, tpr)
     except:
         eval_res.auc = 0

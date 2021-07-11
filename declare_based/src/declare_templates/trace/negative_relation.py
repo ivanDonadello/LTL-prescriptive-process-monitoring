@@ -1,5 +1,5 @@
 from declare_based.src.enums import TraceState
-from declare_based.src.models import LogResult, TraceResult
+from declare_based.src.models import TraceResult
 
 
 # mp-not-responded-existence constraint checker

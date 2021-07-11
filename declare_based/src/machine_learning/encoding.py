@@ -10,11 +10,11 @@ def encode_traces(log, pairs, templates, rules, labeling):
         trace_result = {}
         for (a, b) in pairs:
             for template in templates:
-                trace_result[template + "[" + a + "," + b + "]"] = DT_TRACE_METHODS[template](trace, True,
+                trace_result[template.value + "[" + a + "," + b + "]"] = DT_TRACE_METHODS[template.value](trace, True,
                                                                                                a, b,
                                                                                                rules["activation"],
                                                                                                rules["correlation"],
-                                                                                               rules["vacuousSatisfaction"]).state.value
+                                                                                               rules["vacuous_satisfaction"]).state.value
         if not features:
             features = list(trace_result.keys())
         encoded_data.append(list(trace_result.values()))

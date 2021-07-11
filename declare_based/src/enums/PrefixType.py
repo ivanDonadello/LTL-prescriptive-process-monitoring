@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import Enum, auto
 
 
 class PrefixType(Enum):
-    ONLY = "ONLY"
-    UPTO = "UPTO"
+    ONLY = auto()
+    UPTO = auto()
