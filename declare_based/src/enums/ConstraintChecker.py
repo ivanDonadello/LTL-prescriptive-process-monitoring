@@ -2,6 +2,12 @@ from enum import Enum
 
 
 class ConstraintChecker(Enum):
+    EXISTENCE = "Existence"
+    ABSENCE = "Absence"
+    INIT = "Init"
+    EXACTLY = "Exactly"
+    CHOICE = "Choice"
+    EXCLUSIVE_CHOICE = "Exclusive Choice"
     RESPONDED_EXISTENCE = "Responded Existence"
     RESPONSE = "Response"
     ALTERNATE_RESPONSE = "Alternate Response"

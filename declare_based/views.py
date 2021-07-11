@@ -8,6 +8,38 @@ from rest_framework.response import Response
 
 from pm4py.objects.log.importer.xes import factory as xes_import_factory
 
+import os
+import shutil
+
+class DeclareTemplates:
+    @csrf_exempt
+    @api_view(['GET'])
+    def generate(request):
+        log = "test.xes" # name of the .xes file
+        declare = "test.decl" # name of the .decl file
+        done = True # whether the log is complete or not
+
+        log = xes_import_factory.apply(settings.MEDIA_ROOT + "input/log/" + log)
+        declare = parse_decl(settings.MEDIA_ROOT + "input/declare/" + declare)
+
+        activities = declare["activities"]
+        result = {}
+        for key, rules in declare["rules"].items():
+            if key == ConstraintChecker.INIT.value:
+                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], rules["activation_rules"]).__dict__
+            elif key in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.EXACTLY.value]:
+                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], rules["activation_rules"],
+                                                  rules["n"]).__dict__
+            elif key in [ConstraintChecker.CHOICE.value, ConstraintChecker.EXCLUSIVE_CHOICE.value]:
+                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], activities["T"],
+                                                  rules["activation_rules"]).__dict__
+            else:
+                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], activities["T"],
+                                                  rules["activation_rules"],
+                                                  rules["correlation_rules"]).__dict__
+        context = {"result": result}
+        return Response(context, status=status.HTTP_200_OK)
+
 class Recommendation:
     @csrf_exempt
     @api_view(['GET'])
@@ -46,9 +78,12 @@ class Recommendation:
 
         rules["activation"] = generate_rules(rules["activation"])
         rules["correlation"] = generate_rules(rules["correlation"])
+
+        shutil.rmtree(settings.MEDIA_ROOT + "output", ignore_errors=True)
+        os.makedirs(os.path.join(settings.MEDIA_ROOT + "output/result"))
         
-        train_log = xes_import_factory.apply(settings.MEDIA_ROOT + "input/log-splits/train.xes")
-        test_log = xes_import_factory.apply(settings.MEDIA_ROOT + "input/log-splits/test.xes")
+        train_log = xes_import_factory.apply(settings.MEDIA_ROOT + "input/log/train.xes")
+        test_log = xes_import_factory.apply(settings.MEDIA_ROOT + "input/log/test.xes")
 
         recommendations, evaluation = generate_recommendations_and_evaluation(test_log=test_log, train_log=train_log,
                                                                               labeling=labeling,
