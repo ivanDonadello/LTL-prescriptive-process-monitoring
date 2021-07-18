@@ -80,7 +80,7 @@ class Recommendation:
         labeling = {
             "label_type": LabelType.TRACE_DURATION,
             "label_threshold_type": LabelThresholdType.LABEL_MEAN,
-            "target_label": TraceLabel.TRUE,
+            "target_label": TraceLabel.TRUE, # lower than a threshold considered as True
             "trace_attribute": "",
             "custom_label_threshold": 0.0
         }
