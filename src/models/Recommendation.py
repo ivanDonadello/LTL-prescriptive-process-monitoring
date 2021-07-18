@@ -1,5 +1,4 @@
-class Recommendation(object):
-
+class Recommendation:
     def __init__(self, trace_id, prefix_len, complete_trace, current_prefix, actual_label, target_label, is_compliant, confusion_matrix, impurity, num_samples, recommendation):
         self.trace_id = trace_id
         self.prefix_len = prefix_len
