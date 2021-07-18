@@ -1,4 +1,4 @@
-# recommender-system
+# Recommender system
 ## Research Goal:
 To build a process-oriented recommender system
 ### Declare-based approach:
@@ -9,5 +9,5 @@ To build a process-oriented recommender system
 2. Build a predictor
    - Encoding traces
    - Labeling
-   - Building Decision trees
+   - Building decision trees
 3. Provide recommendations on ongoing traces
