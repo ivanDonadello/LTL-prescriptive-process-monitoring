@@ -65,7 +65,7 @@ def evaluate(trace, prefix, path, rules, labeling):
     return is_compliant, cm
 
 
-def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefixing, support_threshold, templates,
+def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefixing, support_threshold, checkers,
                                             rules):
     if labeling["threshold_type"] == LabelThresholdType.LABEL_MEAN:
         labeling["custom_threshold"] = calc_mean_label_threshold(train_log, labeling)
@@ -75,7 +75,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     pairs = find_pairs(train_log, support_threshold)
 
     print("Generating decision tree input ...")
-    dt_input = encode_traces(train_log, pairs=pairs, templates=templates, rules=rules, labeling=labeling)
+    dt_input = encode_traces(train_log, pairs=pairs, checkers=checkers, rules=rules, labeling=labeling)
 
     print("Generating paths ...")
     paths = generate_decision_tree_paths(dt_input=dt_input, target_label=target_label)

@@ -17,7 +17,7 @@ def recommend():
         support_threshold = 0.75
         train_log_path = "media/input/log/train.xes"
         test_log_path = "media/input/log/test.xes"
-        templates = [
+        checkers = [
             ConstraintChecker.EXISTENCE,
             ConstraintChecker.ABSENCE,
             ConstraintChecker.INIT,
@@ -77,7 +77,7 @@ def recommend():
                                                                               labeling=labeling,
                                                                               prefixing=prefixing,
                                                                               support_threshold=support_threshold,
-                                                                              templates=templates,
+                                                                              checkers=checkers,
                                                                               rules=rules)
                                                                               
         return {"recommendations": recommendations, "evaluation": evaluation}
