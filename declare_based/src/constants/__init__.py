@@ -1,1 +1,1 @@
-from .declare_constants import *
+from .constants import *

@@ -1,6 +1,6 @@
 from declare_based.src.enums.ConstraintChecker import ConstraintChecker
 from django.views.decorators.csrf import csrf_exempt
-from declare_based.src.parsers import *
+from declare_based.src.machine_learning.utils import *
 from declare_based.src.machine_learning import *
 from rest_framework import status
 from rest_framework.decorators import api_view

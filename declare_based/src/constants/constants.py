@@ -1,6 +1,6 @@
 from declare_based.src.enums.ConstraintChecker import ConstraintChecker
-from declare_based.src.declare_templates.trace import relation as dt_relation_trace
-from declare_based.src.declare_templates.trace import negative_relation as dt_negative_relation_trace
+from declare_based.src.constraint_checkers import relation as dt_relation_trace
+from declare_based.src.constraint_checkers import negative_relation as dt_negative_relation_trace
 
 DT_TRACE_METHODS = {
     ConstraintChecker.RESPONDED_EXISTENCE.value: dt_relation_trace.mp_responded_existence,
