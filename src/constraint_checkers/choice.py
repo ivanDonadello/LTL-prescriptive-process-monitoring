@@ -4,14 +4,9 @@ from src.models import TraceResult
 
 # mp-choice constraint checker
 # Description:
-def mp_choice(trace, done, a, b, activation_rules):
-    print("========== mp-choice constraint checker ==========")
-    print("inputs: ")
-    print("done: ", done)
-    print("a: ", a)
-    print("b: ", b)
-    print("activation rules: ", activation_rules)
-    print("output: ", end="")
+def mp_choice(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+
     a_or_b_occurs = False
     for A in trace:
         if A["concept:name"] == a or A["concept:name"] == b:
@@ -32,21 +27,16 @@ def mp_choice(trace, done, a, b, activation_rules):
         num_violations_in_trace=None,
         num_pendings_in_trace=None,
         num_activations_in_trace=None,
-        state=state.name
+        state=state
     )
     return traceResult
 
 
 # mp-exclusive-choice constraint checker
 # Description:
-def mp_exclusive_choice(trace, done, a, b, activation_rules):
-    print("========== mp-exclusive-choice constraint checker ==========")
-    print("inputs: ")
-    print("done: ", done)
-    print("a: ", a)
-    print("b: ", b)
-    print("activation rules: ", activation_rules)
-    print("output: ", end="")
+def mp_exclusive_choice(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+
     a_occurs = False
     b_occurs = False
     for A in trace:
@@ -74,6 +64,6 @@ def mp_exclusive_choice(trace, done, a, b, activation_rules):
         num_violations_in_trace=None,
         num_pendings_in_trace=None,
         num_activations_in_trace=None,
-        state=state.name
+        state=state
     )
     return traceResult

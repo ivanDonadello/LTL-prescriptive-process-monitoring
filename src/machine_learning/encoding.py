@@ -10,11 +10,8 @@ def encode_traces(log, pairs, templates, rules, labeling):
         trace_result = {}
         for (a, b) in pairs:
             for template in templates:
-                trace_result[template.value + "[" + a + "," + b + "]"] = DT_TRACE_METHODS[template.value](trace, True,
-                                                                                               a, b,
-                                                                                               rules["activation"],
-                                                                                               rules["correlation"],
-                                                                                               rules["vacuous_satisfaction"]).state.value
+                key = template.value + "[" + a + "," + b +"]"
+                trace_result[key] = CONSTRAINT_CHECKER_FUNCTIONS[template.value](trace, True, a, b, rules).state.value
         if not features:
             features = list(trace_result.keys())
         encoded_data.append(list(trace_result.values()))

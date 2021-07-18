@@ -1,3 +1,4 @@
+from src.enums.ConstraintChecker import ConstraintChecker
 from src.enums import TraceState
 from src.models import TraceResult
 
@@ -6,14 +7,10 @@ from src.models import TraceResult
 # Description:
 # The future constraining constraint existence(n, a) indicates that
 # event a must occur at least n-times in the trace.
-def mp_existence(trace, done, a, activation_rules, n):
-    print("========== mp-existence constraint checker ==========")
-    print("inputs: ")
-    print("done: ", done)
-    print("a: ", a)
-    print("activation rules: ", activation_rules)
-    print("n: ", n)
-    print("output: ", end="")
+def mp_existence(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    n = rules["n"][ConstraintChecker.EXISTENCE]
+
     num_activations_in_trace = 0
     for A in trace:
         if A["concept:name"] == a and eval(activation_rules):
@@ -32,7 +29,7 @@ def mp_existence(trace, done, a, activation_rules, n):
         num_violations_in_trace=None,
         num_pendings_in_trace=None,
         num_activations_in_trace=None,
-        state=state.name
+        state=state
     )
     return traceResult
 
@@ -41,14 +38,10 @@ def mp_existence(trace, done, a, activation_rules, n):
 # Description:
 # The future constraining constraint absence(n + 1, a) indicates that
 # event a may occur at most n − times in the trace.
-def mp_absence(trace, done, a, activation_rules, n):
-    print("========== mp-absence constraint checker ==========")
-    print("inputs: ")
-    print("done: ", done)
-    print("a: ", a)
-    print("activation rules: ", activation_rules)
-    print("n: ", n)
-    print("output: ", end="")
+def mp_absence(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    n = rules["n"][ConstraintChecker.ABSENCE]
+
     num_activations_in_trace = 0
     for A in trace:
         if A["concept:name"] == a and eval(activation_rules):
@@ -67,7 +60,7 @@ def mp_absence(trace, done, a, activation_rules, n):
         num_violations_in_trace=None,
         num_pendings_in_trace=None,
         num_activations_in_trace=None,
-        state=state.name
+        state=state
     )
     return traceResult
 
@@ -76,13 +69,9 @@ def mp_absence(trace, done, a, activation_rules, n):
 # Description:
 # The future constraining constraint init(e) indicates that
 # event e is the first event that occurs in the trace.
-def mp_init(trace, done, a, activation_rules):
-    print("========== mp-init constraint checker ==========")
-    print("inputs: ")
-    print("done: ", done)
-    print("a: ", a)
-    print("activation rules: ", activation_rules)
-    print("output: ", end="")
+def mp_init(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    
     state = TraceState.VIOLATED
     if trace[0]["concept:name"] == a:
         A = trace[0]
@@ -93,21 +82,17 @@ def mp_init(trace, done, a, activation_rules):
         num_violations_in_trace=None,
         num_pendings_in_trace=None,
         num_activations_in_trace=None,
-        state=state.name
+        state=state
     )
     return traceResult
 
 
 # mp-exactly constraint checker
 # Description:
-def mp_exactly(trace, done, a, activation_rules, n):
-    print("========== mp-exactly constraint checker ==========")
-    print("inputs: ")
-    print("done: ", done)
-    print("a: ", a)
-    print("activation rules: ", activation_rules)
-    print("n: ", n)
-    print("output: ", end="")
+def mp_exactly(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    n = rules["n"][ConstraintChecker.EXACTLY]
+
     num_activations_in_trace = 0
     for A in trace:
         if A["concept:name"] == a and eval(activation_rules):
@@ -128,6 +113,6 @@ def mp_exactly(trace, done, a, activation_rules, n):
         num_violations_in_trace=None,
         num_pendings_in_trace=None,
         num_activations_in_trace=None,
-        state=state.name
+        state=state
     )
     return traceResult

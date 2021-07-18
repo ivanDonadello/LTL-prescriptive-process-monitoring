@@ -4,7 +4,11 @@ from src.models import TraceResult
 
 # mp-not-responded-existence constraint checker
 # Description:
-def mp_not_responded_existence(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_not_responded_existence(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     pendings = []
     num_fulfillments_in_trace = 0
     num_violations_in_trace = 0
@@ -54,7 +58,11 @@ def mp_not_responded_existence(trace, done, a, b, activation_rules, correlation_
 
 # mp-not-response constraint checker
 # Description:
-def mp_not_response(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_not_response(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     pendings = []
     num_fulfillments_in_trace = 0
     num_violations_in_trace = 0
@@ -101,7 +109,11 @@ def mp_not_response(trace, done, a, b, activation_rules, correlation_rules, vacu
 
 # mp-not-chain-response constraint checker
 # Description:
-def mp_not_chain_response(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_not_chain_response(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     num_activations_in_trace = 0
     num_violations_in_trace = 0
     num_pendings_in_trace = 0
@@ -145,7 +157,11 @@ def mp_not_chain_response(trace, done, a, b, activation_rules, correlation_rules
 
 # mp-not-precedence constraint checker
 # Description:
-def mp_not_precedence(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_not_precedence(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     num_activations_in_trace = 0
     num_violations_in_trace = 0
     Ts = []
@@ -187,7 +203,11 @@ def mp_not_precedence(trace, done, a, b, activation_rules, correlation_rules, va
 
 # mp-not-chain-precedence constraint checker
 # Description:
-def mp_not_chain_precedence(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_not_chain_precedence(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     num_activations_in_trace = 0
     num_violations_in_trace = 0
     for index, event in enumerate(trace):

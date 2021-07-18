@@ -8,7 +8,11 @@ from src.models import TraceResult
 # respondedExistence(a, b) indicates that, if event a occurs in the trace
 # then event b occurs in the trace as well.
 # Event a activates the constraint.
-def mp_responded_existence(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_responded_existence(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     pendings = []
     num_fulfillments_in_trace = 0
     num_violations_in_trace = 0
@@ -63,7 +67,11 @@ def mp_responded_existence(trace, done, a, b, activation_rules, correlation_rule
 # The future constraining constraint response(a, b) indicates that
 # if event a occurs in the trace, then event b occurs after a.
 # Event a activates the constraint.
-def mp_response(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_response(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     pendings = []
     num_fulfillments_in_trace = 0
     num_violations_in_trace = 0
@@ -116,7 +124,11 @@ def mp_response(trace, done, a, b, activation_rules, correlation_rules, vacuous_
 # each time event a occurs in the trace then event b occurs afterwards
 # before event a recurs.
 # Event a activates the constraint.
-def mp_alternate_response(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_alternate_response(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     pending = None
     num_activations_in_trace = 0
     num_fulfillments_in_trace = 0
@@ -167,7 +179,11 @@ def mp_alternate_response(trace, done, a, b, activation_rules, correlation_rules
 # The future constraining constraint chain_response(a, b) indicates that,
 # each time event a occurs in the trace, event b occurs immediately afterwards.
 # Event a activates the constraint.
-def mp_chain_response(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_chain_response(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     num_activations_in_trace = 0
     num_fulfillments_in_trace = 0
     num_pendings_in_trace = 0
@@ -216,7 +232,11 @@ def mp_chain_response(trace, done, a, b, activation_rules, correlation_rules, va
 # The history-based constraint precedence(a,b) indicates that event b occurs
 # only in the trace, if preceded by a. Event b activates the constraint.
 # Event b activates the constraint.
-def mp_precedence(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_precedence(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     num_activations_in_trace = 0
     num_fulfillments_in_trace = 0
     Ts = []
@@ -262,7 +282,11 @@ def mp_precedence(trace, done, a, b, activation_rules, correlation_rules, vacuou
 # each time event b occurs in the trace
 # it is preceded by event a and no other event b can recur in between.
 # Event b activates the constraint.
-def mp_alternate_precedence(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_alternate_precedence(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+
     num_activations_in_trace = 0
     num_fulfillments_in_trace = 0
     Ts = []
@@ -308,7 +332,11 @@ def mp_alternate_precedence(trace, done, a, b, activation_rules, correlation_rul
 # The history-based constraint chain_precedence(a, b) indicates that,
 # each time event b occurs in the trace, event a occurs immediately beforehand.
 # Event b activates the constraint.
-def mp_chain_precedence(trace, done, a, b, activation_rules, correlation_rules, vacuous_satisfaction):
+def mp_chain_precedence(trace, done, a, b, rules):
+    activation_rules = rules["activation"]
+    correlation_rules = rules["correlation"]
+    vacuous_satisfaction = rules["vacuous_satisfaction"]
+    
     num_activations_in_trace = 0
     num_fulfillments_in_trace = 0
     for index, event in enumerate(trace):

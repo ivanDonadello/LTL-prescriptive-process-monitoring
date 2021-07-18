@@ -18,6 +18,12 @@ def recommend():
         train_log_path = "media/input/log/train.xes"
         test_log_path = "media/input/log/test.xes"
         templates = [
+            ConstraintChecker.EXISTENCE,
+            ConstraintChecker.ABSENCE,
+            ConstraintChecker.INIT,
+            ConstraintChecker.EXACTLY,
+            ConstraintChecker.CHOICE,
+            ConstraintChecker.EXCLUSIVE_CHOICE,
             ConstraintChecker.RESPONDED_EXISTENCE,
             ConstraintChecker.RESPONSE,
             ConstraintChecker.ALTERNATE_RESPONSE,
@@ -31,25 +37,30 @@ def recommend():
             ConstraintChecker.NOT_PRECEDENCE,
             ConstraintChecker.NOT_CHAIN_PRECEDENCE
         ]
-        prefix_type = {
+        prefixing = {
             "type": PrefixType.UPTO,
             "length": 5
         }
         rules = {
             "vacuous_satisfaction": True,
-            "activation": "",
-            "correlation": ""
+            "activation": "", # e.g. A.attr > 6
+            "correlation": "", # e.g. T.attr < 12
+            "n": {
+                ConstraintChecker.EXISTENCE: 1,
+                ConstraintChecker.ABSENCE: 1,
+                ConstraintChecker.EXACTLY: 1,
+            }
         }
         labeling = {
-            "label_type": LabelType.TRACE_DURATION,
-            "label_threshold_type": LabelThresholdType.LABEL_MEAN,
-            "target_label": TraceLabel.TRUE, # lower than a threshold considered as True
+            "type": LabelType.TRACE_DURATION,
+            "threshold_type": LabelThresholdType.LABEL_MEAN,
+            "target": TraceLabel.TRUE, # lower than a threshold considered as True
             "trace_attribute": "",
-            "custom_label_threshold": 0.0
+            "custom_threshold": 0.0
         }
         # ================ inputs ================
 
-        # create ouput folder
+        # recreate ouput folder
         shutil.rmtree("media/output", ignore_errors=True)
         os.makedirs(os.path.join("media/output/result"))
 
@@ -64,12 +75,9 @@ def recommend():
         # generate recommendations and evaluation
         recommendations, evaluation = generate_recommendations_and_evaluation(test_log=test_log, train_log=train_log,
                                                                               labeling=labeling,
-                                                                              prefix_type=prefix_type,
+                                                                              prefixing=prefixing,
                                                                               support_threshold=support_threshold,
                                                                               templates=templates,
                                                                               rules=rules)
-        res = []
-        for recommendation in recommendations:
-            res.append(recommendation.__dict__)
-        return {"recommendations": res, "evaluation": evaluation.__dict__}
-        return {}
+                                                                              
+        return {"recommendations": recommendations, "evaluation": evaluation}

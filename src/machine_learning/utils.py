@@ -2,7 +2,7 @@ from src.models.Prefix import *
 from src.enums import PrefixType
 
 
-def generate_prefixes(log, prefix_type):
+def generate_prefixes(log, prefixing):
 
     def only(n):
         prefixes = {n: []}
@@ -31,8 +31,8 @@ def generate_prefixes(log, prefix_type):
                     break
         return prefixes
 
-    n = prefix_type["length"]
-    if prefix_type["type"] == PrefixType.ONLY:
+    n = prefixing["length"]
+    if prefixing["type"] == PrefixType.ONLY:
         return only(n)
     else:
         return up_to(n)

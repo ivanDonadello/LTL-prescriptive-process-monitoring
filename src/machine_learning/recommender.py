@@ -16,8 +16,7 @@ def recommend(prefix, path, rules):
     for rule in path.rules:
         method, state = rule
         method_name, method_params = parse_method(method)
-        result = DT_TRACE_METHODS[method_name](prefix, False, method_params[0], method_params[1], rules["activation"],
-                                               rules["correlation"], rules["vacuous_satisfaction"])
+        result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix, False, method_params[0], method_params[1], rules)
         if state == TraceState.SATISFIED:
             if result.state == TraceState.VIOLATED:
                 recommendation = "Contradiction"
@@ -41,20 +40,19 @@ def recommend(prefix, path, rules):
     return recommendation
 
 
-def evaluate(trace, prefix, target_label, path, rules, labeling):
+def evaluate(trace, prefix, path, rules, labeling):
     is_compliant = True
     for rule in path.rules:
         method, state = rule
         method_name, method_params = parse_method(method)
-        result = DT_TRACE_METHODS[method_name](prefix.events, True, method_params[0], method_params[1],
-                                               rules["activation"], rules["correlation"], rules["vacuous_satisfaction"])
+        result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix.events, True, method_params[0], method_params[1], rules)
         if state != result.state:
             is_compliant = False
             break
 
     label = generate_label(trace, labeling)
 
-    if target_label == TraceLabel.TRUE:
+    if labeling["target"] == TraceLabel.TRUE:
         if is_compliant:
             cm = ConfusionMatrix.TP if label == TraceLabel.TRUE else ConfusionMatrix.FP
         else:
@@ -67,12 +65,12 @@ def evaluate(trace, prefix, target_label, path, rules, labeling):
     return is_compliant, cm
 
 
-def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefix_type, support_threshold, templates,
+def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefixing, support_threshold, templates,
                                             rules):
-    if labeling["label_threshold_type"] == LabelThresholdType.LABEL_MEAN:
-        labeling["custom_label_threshold"] = calc_mean_label_threshold(train_log, labeling)
+    if labeling["threshold_type"] == LabelThresholdType.LABEL_MEAN:
+        labeling["custom_threshold"] = calc_mean_label_threshold(train_log, labeling)
 
-    target_label = labeling["target_label"]
+    target_label = labeling["target"]
 
     pairs = find_pairs(train_log, support_threshold)
 
@@ -83,7 +81,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     paths = generate_decision_tree_paths(dt_input=dt_input, target_label=target_label)
 
     print("Generating test prefixes ...")
-    test_prefixes = generate_prefixes(test_log, prefix_type)
+    test_prefixes = generate_prefixes(test_log, prefixing)
 
     print("Generating recommendations ...")
     recommendations = []
@@ -102,7 +100,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                 if recommendation != "Contradiction" and recommendation != "":
                     selected_path = path
                     trace = test_log[prefix.trace_num]
-                    is_compliant, e = evaluate(trace, prefix, target_label, path, rules, labeling)
+                    is_compliant, e = evaluate(trace, prefix, path, rules, labeling)
                     if e == ConfusionMatrix.TP:
                         eval_res.tp += 1
                     elif e == ConfusionMatrix.FP:
