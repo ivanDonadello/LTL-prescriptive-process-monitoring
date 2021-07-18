@@ -12,40 +12,6 @@ import os
 import shutil
 
 
-class DeclareTemplates:
-    @csrf_exempt
-    @api_view(['GET'])
-    def generate(request):
-        # ================ inputs ================
-        log_file_path = settings.MEDIA_ROOT + "input/log/test.xes"
-        decl_file_path = settings.MEDIA_ROOT + "input/decl/test.decl"
-        done = True  # whether the log is complete or not
-        # ================ inputs ================
-
-        # read the files
-        log = xes_import_factory.apply(log_file_path)
-        declare = parse_decl(decl_file_path)
-
-        activities = declare["activities"]
-        result = {}
-        for key, rules in declare["rules"].items():
-            if key == ConstraintChecker.INIT.value:
-                result[key] = DT_LOG_METHODS[key](
-                    log, done, activities["A"], rules["activation_rules"]).__dict__
-            elif key in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.EXACTLY.value]:
-                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], rules["activation_rules"],
-                                                  rules["n"]).__dict__
-            elif key in [ConstraintChecker.CHOICE.value, ConstraintChecker.EXCLUSIVE_CHOICE.value]:
-                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], activities["T"],
-                                                  rules["activation_rules"]).__dict__
-            else:
-                result[key] = DT_LOG_METHODS[key](log, done, activities["A"], activities["T"],
-                                                  rules["activation_rules"],
-                                                  rules["correlation_rules"]).__dict__
-
-        return Response({"result": result}, status=status.HTTP_200_OK)
-
-
 class Recommendation:
     @csrf_exempt
     @api_view(['GET'])
