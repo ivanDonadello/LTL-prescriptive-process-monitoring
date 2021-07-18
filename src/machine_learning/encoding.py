@@ -1,6 +1,6 @@
-from declare_based.src.constants import *
-from declare_based.src.machine_learning.labeling import *
-from declare_based.src.models.DTInput import *
+from src.constants import *
+from src.machine_learning.labeling import *
+from src.models.DTInput import *
 
 
 def encode_traces(log, pairs, templates, rules, labeling):

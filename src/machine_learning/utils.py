@@ -1,5 +1,5 @@
-from declare_based.src.models.Prefix import *
-from declare_based.src.enums import PrefixType
+from src.models.Prefix import *
+from src.enums import PrefixType
 
 
 def generate_prefixes(log, prefix_type):

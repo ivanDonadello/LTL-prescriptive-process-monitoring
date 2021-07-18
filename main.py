@@ -1,25 +1,22 @@
-from declare_based.src.enums.ConstraintChecker import ConstraintChecker
-from django.views.decorators.csrf import csrf_exempt
-from declare_based.src.machine_learning.utils import *
-from declare_based.src.machine_learning import *
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
+from fastapi import FastAPI
 
 from pm4py.objects.log.importer.xes import factory as xes_import_factory
 
 import os
 import shutil
 
+from src.enums.ConstraintChecker import ConstraintChecker
+from src.machine_learning.utils import *
+from src.machine_learning import *
 
-class Recommendation:
-    @csrf_exempt
-    @api_view(['GET'])
-    def recommend(request):
+app = FastAPI()
+
+@app.get("/")
+def recommend():
         # ================ inputs ================
         support_threshold = 0.75
-        train_log_path = settings.MEDIA_ROOT + "input/log/train.xes"
-        test_log_path = settings.MEDIA_ROOT + "input/log/test.xes"
+        train_log_path = "media/input/log/train.xes"
+        test_log_path = "media/input/log/test.xes"
         templates = [
             ConstraintChecker.RESPONDED_EXISTENCE,
             ConstraintChecker.RESPONSE,
@@ -53,8 +50,8 @@ class Recommendation:
         # ================ inputs ================
 
         # create ouput folder
-        shutil.rmtree(settings.MEDIA_ROOT + "output", ignore_errors=True)
-        os.makedirs(os.path.join(settings.MEDIA_ROOT + "output/result"))
+        shutil.rmtree("media/output", ignore_errors=True)
+        os.makedirs(os.path.join("media/output/result"))
 
         # generate rules
         rules["activation"] = generate_rules(rules["activation"])
@@ -74,5 +71,5 @@ class Recommendation:
         res = []
         for recommendation in recommendations:
             res.append(recommendation.__dict__)
-        context = {"recommendations": res, "evaluation": evaluation.__dict__}
-        return Response(context, status=status.HTTP_200_OK)
+        return {"recommendations": res, "evaluation": evaluation.__dict__}
+        return {}

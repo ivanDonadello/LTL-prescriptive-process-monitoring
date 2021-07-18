@@ -1,9 +1,9 @@
-from declare_based.src.machine_learning.utils import *
-from declare_based.src.machine_learning.apriori import *
-from declare_based.src.machine_learning.encoding import *
-from declare_based.src.machine_learning.decision_tree import *
-from declare_based.src.models import EvaluationResult
-from declare_based.src.constants import *
+from src.machine_learning.utils import *
+from src.machine_learning.apriori import *
+from src.machine_learning.encoding import *
+from src.machine_learning.decision_tree import *
+from src.models import EvaluationResult
+from src.constants import *
 
 import numpy as np
 from sklearn import metrics
@@ -166,7 +166,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
 
 
 def write_evaluation_to_csv(e):
-    csv_file = settings.MEDIA_ROOT + "output/result/evaluation.csv"
+    csv_file = "./media/output/result/evaluation.csv"
     fieldnames = ["tp", "fp", "tn", "fn", "precision", "recall", "accuracy", "fscore", "auc"]
     values = {
         "tp": e.tp,
@@ -189,7 +189,7 @@ def write_evaluation_to_csv(e):
 
 
 def write_recommendations_to_csv(recommendations):
-    csv_file = settings.MEDIA_ROOT + "output/result/recommendations.csv"
+    csv_file = "./media/output/result/recommendations.csv"
     fieldnames = ["Trace id", "Prefix len", "Complete trace", "Current prefix", "Recommendation", "Actual label",
                   "Target label", "Compliant", "Confusion matrix", "Impurity", "Num samples"]
     values = []

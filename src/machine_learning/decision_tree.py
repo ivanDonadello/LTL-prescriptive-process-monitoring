@@ -1,12 +1,10 @@
 import numpy as np
 import pandas as pd
 
-from django.conf import settings
-
 from sklearn.tree import DecisionTreeClassifier
 
-from declare_based.src.models import *
-from declare_based.src.enums import *
+from src.models import *
+from src.enums import *
 
 
 def generate_decision_tree_paths(dt_input, target_label):

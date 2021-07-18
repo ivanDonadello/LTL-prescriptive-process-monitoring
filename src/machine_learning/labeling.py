@@ -1,4 +1,4 @@
-from declare_based.src.enums import *
+from src.enums import *
 
 
 def calc_mean_label_threshold(log, labeling):
