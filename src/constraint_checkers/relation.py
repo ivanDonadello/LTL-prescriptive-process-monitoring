@@ -139,13 +139,13 @@ def mp_alternate_response(trace, done, a, b, rules):
             if eval(activation_rules):
                 pending = event
                 num_activations_in_trace += 1
-        if event["concept:name"] == b and pending != None:
+        if event["concept:name"] == b and pending is not None:
             A = pending
             T = event
             if eval(correlation_rules):
                 pending = None
                 num_fulfillments_in_trace += 1
-    if not done and pending != None:
+    if not done and pending is not None:
         num_pendings_in_trace = 1
     num_violations_in_trace = num_activations_in_trace - num_fulfillments_in_trace - num_pendings_in_trace
 
