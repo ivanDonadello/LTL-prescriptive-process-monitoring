@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from pm4py.objects.log.importer.xes import factory as xes_import_factory
+import pm4py
 
 import os
 import shutil
@@ -69,8 +69,8 @@ def recommend():
         rules["correlation"] = generate_rules(rules["correlation"])
 
         # read the files
-        train_log = xes_import_factory.apply(train_log_path)
-        test_log = xes_import_factory.apply(test_log_path)
+        train_log = pm4py.read_xes(train_log_path)
+        test_log = pm4py.read_xes(test_log_path)
 
         # generate recommendations and evaluation
         recommendations, evaluation = generate_recommendations_and_evaluation(test_log=test_log, train_log=train_log,
