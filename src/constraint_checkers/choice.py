@@ -1,5 +1,5 @@
 from src.enums import TraceState
-from src.models import TraceResult
+from src.models import CheckerResult
 
 
 # mp-choice constraint checker
@@ -22,14 +22,7 @@ def mp_choice(trace, done, a, b, rules):
     elif a_or_b_occurs:
         state = TraceState.SATISFIED
 
-    traceResult = TraceResult(
-        num_fulfillments_in_trace=None,
-        num_violations_in_trace=None,
-        num_pendings_in_trace=None,
-        num_activations_in_trace=None,
-        state=state
-    )
-    return traceResult
+    return CheckerResult(num_fulfillments=None, num_violations=None, num_pendings=None, num_activations=None, state=state)
 
 
 # mp-exclusive-choice constraint checker
@@ -59,11 +52,4 @@ def mp_exclusive_choice(trace, done, a, b, rules):
     elif done and (a_occurs ^ b_occurs):
         state = TraceState.SATISFIED
 
-    traceResult = TraceResult(
-        num_fulfillments_in_trace=None,
-        num_violations_in_trace=None,
-        num_pendings_in_trace=None,
-        num_activations_in_trace=None,
-        state=state
-    )
-    return traceResult
+    return CheckerResult(num_fulfillments=None, num_violations=None, num_pendings=None, num_activations=None, state=state)
