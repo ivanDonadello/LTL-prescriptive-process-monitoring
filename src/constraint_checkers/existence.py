@@ -7,7 +7,7 @@ from src.models import CheckerResult
 # Description:
 # The future constraining constraint existence(n, a) indicates that
 # event a must occur at least n-times in the trace.
-def mp_existence(trace, done, a, b, rules):
+def mp_existence(trace, done, a, rules):
     activation_rules = rules["activation"]
     n = rules["n"][ConstraintChecker.EXISTENCE]
 
@@ -31,7 +31,7 @@ def mp_existence(trace, done, a, b, rules):
 # Description:
 # The future constraining constraint absence(n + 1, a) indicates that
 # event a may occur at most n − times in the trace.
-def mp_absence(trace, done, a, b, rules):
+def mp_absence(trace, done, a, rules):
     activation_rules = rules["activation"]
     n = rules["n"][ConstraintChecker.ABSENCE]
 
@@ -55,7 +55,7 @@ def mp_absence(trace, done, a, b, rules):
 # Description:
 # The future constraining constraint init(e) indicates that
 # event e is the first event that occurs in the trace.
-def mp_init(trace, done, a, b, rules):
+def mp_init(trace, done, a, rules):
     activation_rules = rules["activation"]
 
     state = TraceState.VIOLATED
@@ -68,7 +68,7 @@ def mp_init(trace, done, a, b, rules):
 
 # mp-exactly constraint checker
 # Description:
-def mp_exactly(trace, done, a, b, rules):
+def mp_exactly(trace, done, a, rules):
     activation_rules = rules["activation"]
     n = rules["n"][ConstraintChecker.EXACTLY]
 
@@ -87,10 +87,4 @@ def mp_exactly(trace, done, a, b, rules):
     elif done and num_activations == n:
         state = TraceState.SATISFIED
 
-    return CheckerResult(
-        num_fulfillments=None,
-        num_violations=None,
-        num_pendings=None,
-        num_activations=None,
-        state=state
-    )
+    return CheckerResult(num_fulfillments=None, num_violations=None, num_pendings=None, num_activations=None, state=state)

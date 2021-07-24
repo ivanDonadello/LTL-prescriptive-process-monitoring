@@ -16,7 +16,12 @@ def recommend(prefix, path, rules):
     for rule in path.rules:
         method, state = rule
         method_name, method_params = parse_method(method)
-        result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix, False, method_params[0], method_params[1], rules)
+
+        result = None
+        if method_name in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.INIT.value, ConstraintChecker.EXACTLY.value]:
+            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix, False, method_params[0], rules)
+        else:
+            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix, False, method_params[0], method_params[1], rules)
         if state == TraceState.SATISFIED:
             if result.state == TraceState.VIOLATED:
                 recommendation = "Contradiction"
@@ -45,7 +50,13 @@ def evaluate(trace, prefix, path, rules, labeling):
     for rule in path.rules:
         method, state = rule
         method_name, method_params = parse_method(method)
-        result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix.events, True, method_params[0], method_params[1], rules)
+
+        result = None
+        if method_name in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.INIT.value, ConstraintChecker.EXACTLY.value]:
+            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix.events, True, method_params[0], rules)
+        else:
+            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix.events, True, method_params[0], method_params[1], rules)
+
         if state != result.state:
             is_compliant = False
             break
