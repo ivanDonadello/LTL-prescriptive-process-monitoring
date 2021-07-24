@@ -83,11 +83,11 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
 
     target_label = labeling["target"]
 
-    pairs = find_pairs(train_log, support_threshold)
-
+    (frequent_events, frequent_pairs) = generate_frequent_events_and_pairs(train_log, support_threshold)
+    
     print("Generating decision tree input ...")
-    dt_input = encode_traces(train_log, pairs=pairs, checkers=checkers, rules=rules, labeling=labeling)
-
+    dt_input = encode_traces(train_log, frequent_events=frequent_events, frequent_pairs=frequent_pairs, checkers=checkers, rules=rules, labeling=labeling)
+    
     print("Generating paths ...")
     paths = generate_decision_tree_paths(dt_input=dt_input, target_label=target_label)
 

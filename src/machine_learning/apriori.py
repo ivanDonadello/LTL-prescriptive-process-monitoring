@@ -1,8 +1,19 @@
 from itertools import combinations
 from collections import defaultdict
 
+def get_frequent_events(log, support_threshold):
+    res = defaultdict(lambda: 0, {})
+    for trace in log:
+        for event in trace:
+            event_name = event["concept:name"]
+            res[event_name] += 1
+    frequent_events = []
+    for key in res:
+        if res[key] / len(log) > support_threshold:
+            frequent_events.append(key)
+    return frequent_events
 
-def get_num_traces_by_pairs(log, pairs):
+def get_frequent_pairs(log, pairs, support_threshold):
     res = defaultdict(lambda: 0, {})
     for index, trace in enumerate(log):
         print("Trace index: ", index)
@@ -15,36 +26,26 @@ def get_num_traces_by_pairs(log, pairs):
                 elif not b_exists and event["concept:name"] == pair[1]:
                     b_exists = True
                 if a_exists and b_exists:
+                    res[pair] += 1
                     break
-            if a_exists and b_exists:
-                res[pair] += 1
-    return res
+    frequent_pairs = []
+    for key in res:
+        if res[key] / len(log) > support_threshold:
+            frequent_pairs.append(key)
+    return frequent_pairs
 
-
-# a-priori algorithm
-# Description:
-# pairs of events and their support (the % of traces where the pair of events occurs)
-def a_priori(log):
-    num_traces = len(log)
-    distinct_events = set()
-    print("Finding distinct events ...")
-    for trace in log:
-        for event in trace:
-            distinct_events.add(event["concept:name"])
+def generate_frequent_events_and_pairs(log, support_threshold):
+    print("Finding frequent events")
+    frequent_events = get_frequent_events(log, support_threshold)
     print("Making event pairs ...")
-    pairs = list(combinations(distinct_events, 2))
-    print("Calculating frequency of pairs ...")
-    result = get_num_traces_by_pairs(log, pairs)
-    for key in result:
-        result[key] /= num_traces
-    return result
-
-
-def find_pairs(log, support_threshold):
-    frequent_pairs = [*{k: v for (k, v) in a_priori(log).items() if v > support_threshold}]
-    pairs = []
+    pairs = list(combinations(frequent_events, 2))
+    print("Find frequent pairs")
+    frequent_pairs = get_frequent_pairs(log, pairs, support_threshold)
+    
+    all_frequent_pairs = []
     for pair in frequent_pairs:
         (x, y) = pair
         reverse_pair = (y, x)
-        pairs.extend([pair, reverse_pair])
-    return pairs
+        all_frequent_pairs.extend([pair, reverse_pair])
+    return (frequent_events, all_frequent_pairs)
+    
