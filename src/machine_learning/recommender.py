@@ -88,7 +88,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     print("Generating decision tree input ...")
     dt_input = encode_traces(train_log, frequent_events=frequent_events, frequent_pairs=frequent_pairs, checkers=checkers, rules=rules, labeling=labeling)
     
-    print("Generating paths ...")
+    print("Generating decision tree ...")
     paths = generate_decision_tree_paths(dt_input=dt_input, target_label=target_label)
 
     print("Generating test prefixes ...")
@@ -165,10 +165,10 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     except:
         eval_res.auc = 0
 
-    print("Writing evaluation result into csv file")
+    print("Writing evaluation result into csv file ...")
     write_evaluation_to_csv(eval_res)
 
-    print("Writing recommendations into csv file")
+    print("Writing recommendations into csv file ...")
     write_recommendations_to_csv(recommendations)
 
     return recommendations, eval_res

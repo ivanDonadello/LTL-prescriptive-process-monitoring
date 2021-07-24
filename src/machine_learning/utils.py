@@ -7,7 +7,6 @@ def generate_prefixes(log, prefixing):
     def only(n):
         prefixes = {n: []}
         for index, trace in enumerate(log):
-            print("Trace index: ", index)
             if len(trace) >= n:
                 events = []
                 for event in trace:
@@ -21,7 +20,6 @@ def generate_prefixes(log, prefixing):
     def up_to(n):
         prefixes = {"UPTO": []}
         for index, trace in enumerate(log):
-            print("Trace index: ", index)
             events = []
             for event in trace:
                 events.append(event)
@@ -55,6 +53,7 @@ def generate_prefix_path(prefix):
     current_prefix = current_prefix[:-2]
     return current_prefix
 
+
 def generate_rules(rules):
     if rules.strip() == "":
         rules = "True"
@@ -72,7 +71,8 @@ def generate_rules(rules):
             if not words[index + 2].isdigit():
                 words[index + 2] = "\"" + words[index + 2] + "\""
         elif word == "same":
-            words[index] = "A[\"" + words[index + 1] + "\"] == T[\"" + words[index + 1] + "\"]"
+            words[index] = "A[\"" + words[index + 1] + \
+                "\"] == T[\"" + words[index + 1] + "\"]"
             words[index + 1] = ""
     words = list(filter(lambda word: word != "", words))
     rules = " ".join(words)
