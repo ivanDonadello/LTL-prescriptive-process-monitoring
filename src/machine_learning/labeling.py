@@ -1,3 +1,5 @@
+import pdb
+
 from src.enums import *
 
 
@@ -17,6 +19,10 @@ def calc_mean_label_threshold(log, labeling):
 def generate_label(trace, labeling):
     if labeling["type"] == LabelType.DEFAULT:
         if trace.attributes["label"] == "true":
+            return TraceLabel.TRUE
+        return TraceLabel.FALSE
+    elif labeling["type"] == LabelType.TRACE_CATEGORICAL_ATTRIBUTES:
+        if trace[0][labeling["trace_lbl_attr"]] == labeling["trace_label"]:
             return TraceLabel.TRUE
         return TraceLabel.FALSE
     elif labeling["type"] == LabelType.TRACE_DURATION:

@@ -7,6 +7,7 @@ from src.constants import *
 
 import numpy as np
 from sklearn import metrics
+import pdb
 
 import csv
 
@@ -53,10 +54,11 @@ def evaluate(trace, prefix, path, rules, labeling):
 
         result = None
         if method_name in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.INIT.value, ConstraintChecker.EXACTLY.value]:
-            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix.events, True, method_params[0], rules)
+            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](trace, True, method_params[0], rules)
         else:
-            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix.events, True, method_params[0], method_params[1], rules)
+            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](trace, True, method_params[0], method_params[1], rules)
 
+        # if traccia compliant with path
         if state != result.state:
             is_compliant = False
             break
@@ -66,14 +68,29 @@ def evaluate(trace, prefix, path, rules, labeling):
     if labeling["target"] == TraceLabel.TRUE:
         if is_compliant:
             cm = ConfusionMatrix.TP if label == TraceLabel.TRUE else ConfusionMatrix.FP
+            #print(f"1,{label},{cm}")
         else:
             cm = ConfusionMatrix.FN if label == TraceLabel.TRUE else ConfusionMatrix.TN
+            #print(f"0,{label},{cm}")
     else:
+        print("---------------------")
         if is_compliant:
             cm = ConfusionMatrix.FN if label == TraceLabel.TRUE else ConfusionMatrix.TN
         else:
             cm = ConfusionMatrix.TP if label == TraceLabel.TRUE else ConfusionMatrix.FP
     return is_compliant, cm
+
+
+def test_dt(test_log, train_log, labeling, prefixing, support_threshold, checkers, rules):
+
+    (frequent_events, frequent_pairs) = generate_frequent_events_and_pairs(train_log, support_threshold)
+
+    print("Generating decision tree input ...")
+    dt_input = encode_traces(train_log, frequent_events=frequent_events, frequent_pairs=frequent_pairs,
+                             checkers=checkers, rules=rules, labeling=labeling)
+
+    print("Generating decision tree ...")
+    return dt_score(dt_input=dt_input)
 
 
 def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefixing, support_threshold, checkers,
@@ -87,7 +104,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     
     print("Generating decision tree input ...")
     dt_input = encode_traces(train_log, frequent_events=frequent_events, frequent_pairs=frequent_pairs, checkers=checkers, rules=rules, labeling=labeling)
-    
+
     print("Generating decision tree ...")
     paths = generate_decision_tree_paths(dt_input=dt_input, target_label=target_label)
 
@@ -99,15 +116,24 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     eval_res = EvaluationResult()
     y = []
     pred = []
+    #ee = [path.num_samples['total'] for path in paths]
+    #rr=np.sum(ee)
+    np.sum(dt_input.labels)
+
+
+
     for key in test_prefixes:
+        #pdb.set_trace()
         for prefix in test_prefixes[key]:
             selected_path = None
             for index, path in enumerate(paths):
-
+                # prende tutti i path con miglior impurita
                 if selected_path and (path.impurity != selected_path.impurity or path.num_samples != selected_path.num_samples):
                     break
 
                 recommendation = recommend(prefix.events, path, rules)
+                #print(f"{index}->{recommendation}")
+
                 if recommendation != "Contradiction" and recommendation != "":
                     selected_path = path
                     trace = test_log[prefix.trace_num]
@@ -138,6 +164,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                     pred.append(
                         recommendation_model.num_samples["positive"] / recommendation_model.num_samples["total"])
                     recommendations.append(recommendation_model)
+                    #pdb.set_trace()
 
     try:
         eval_res.precision = eval_res.tp / (eval_res.tp + eval_res.fp)
