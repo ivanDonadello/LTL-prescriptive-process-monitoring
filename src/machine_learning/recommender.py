@@ -4,62 +4,61 @@ from src.machine_learning.encoding import *
 from src.machine_learning.decision_tree import *
 from src.models import EvaluationResult
 from src.constants import *
-
+import csv
 import numpy as np
 from sklearn import metrics
 import pdb
-
-import csv
 
 
 def recommend(prefix, path, rules):
     recommendation = ""
     for rule in path.rules:
-        method, state = rule
-        method_name, method_params = parse_method(method)
+        template, rule_state = rule
+        template_name, template_params = parse_method(template)
 
         result = None
-        if method_name in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.INIT.value, ConstraintChecker.EXACTLY.value]:
-            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix, False, method_params[0], rules)
+        if template_name in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.INIT.value, ConstraintChecker.EXACTLY.value]:
+            result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](prefix, False, template_params[0], rules)
         else:
-            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](prefix, False, method_params[0], method_params[1], rules)
-        if state == TraceState.SATISFIED:
+            result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](prefix, False, template_params[0], template_params[1], rules)
+
+        if rule_state == TraceState.SATISFIED:
             if result.state == TraceState.VIOLATED:
                 recommendation = "Contradiction"
                 break
             elif result.state == TraceState.SATISFIED:
                 pass
             elif result.state == TraceState.POSSIBLY_VIOLATED:
-                recommendation += method + " should be SATISFIED. "
+                recommendation += template + " should be SATISFIED. "
             elif result.state == TraceState.POSSIBLY_SATISFIED:
-                recommendation += method + " should not be VIOLATED. "
-        elif state == TraceState.VIOLATED:
+                recommendation += template + " should not be VIOLATED. "
+        elif rule_state == TraceState.VIOLATED:
             if result.state == TraceState.VIOLATED:
                 pass
             elif result.state == TraceState.SATISFIED:
                 recommendation = "Contradiction"
                 break
             elif result.state == TraceState.POSSIBLY_VIOLATED:
-                recommendation += method + " should not be SATISFIED. "
+                recommendation += template + " should not be SATISFIED. "
             elif result.state == TraceState.POSSIBLY_SATISFIED:
-                recommendation += method + " should be VIOLATED. "
+                recommendation += template + " should be VIOLATED. "
     return recommendation
 
 
 def evaluate(trace, prefix, path, rules, labeling):
     is_compliant = True
     for rule in path.rules:
-        method, state = rule
-        method_name, method_params = parse_method(method)
+        template, rule_state = rule
+        template_name, template_params = parse_method(template)
 
         result = None
-        if method_name in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.INIT.value, ConstraintChecker.EXACTLY.value]:
-            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](trace, True, method_params[0], rules)
+        if template_name in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.INIT.value, ConstraintChecker.EXACTLY.value]:
+            result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](trace, True, template_params[0], rules)
         else:
-            result = CONSTRAINT_CHECKER_FUNCTIONS[method_name](trace, True, method_params[0], method_params[1], rules)
+            result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](trace, True, template_params[0], template_params[1], rules)
 
         # if traccia compliant with path
-        if state != result.state:
+        if rule_state != result.state:
             is_compliant = False
             break
 
@@ -116,25 +115,44 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     eval_res = EvaluationResult()
     y = []
     pred = []
-    #ee = [path.num_samples['total'] for path in paths]
-    #rr=np.sum(ee)
     np.sum(dt_input.labels)
 
+    for prefix_length in test_prefixes:
+        for prefix in test_prefixes[prefix_length]:
 
-
-    for key in test_prefixes:
-        #pdb.set_trace()
-        for prefix in test_prefixes[key]:
             selected_path = None
-            for index, path in enumerate(paths):
-                # prende tutti i path con miglior impurita
+
+            for path_index, path in enumerate(paths):
+
                 if selected_path and (path.impurity != selected_path.impurity or path.num_samples != selected_path.num_samples):
                     break
 
                 recommendation = recommend(prefix.events, path, rules)
-                #print(f"{index}->{recommendation}")
+
+                print(f"{prefix_length} {prefix.trace_num} {prefix.trace_id} {path_index}->{recommendation}")
+                #print(generate_label(test_log[prefix.trace_num], labeling))
+                #print(prefix.events[-1]['label'])
+                #print(prefix.events[-1]["concept:name"])
+                #print(len(test_prefixes[key]))
+                #print(len(test_prefixes[key]))
+                """
+                if key > 17:
+                    pdb.set_trace()
+                    for event in prefix.events: print(event["concept:name"])
+                    len(paths)
+                    paths[0].rules
+                    print(generate_label(test_log[prefix.trace_num], labeling))
+                    #for prefix in test_prefixes[key]: generate_label(test_log[prefix.trace_num], labeling)
+
+                    #for id, path in enumerate(paths): print(f"{path.impurity}, {path.num_samples}")
+                """
+                trace = test_log[prefix.trace_num]
+                #for event in prefix.events: print(event["concept:name"])
+                #for id, path in enumerate(paths): print(f"{id} {evaluate(trace, prefix, path, rules, labeling)}")
+                #for id, path in enumerate(paths): print(f"{id}, {path.impurity} {path.num_samples}")
 
                 if recommendation != "Contradiction" and recommendation != "":
+                    #if recommendation != "":
                     selected_path = path
                     trace = test_log[prefix.trace_num]
                     is_compliant, e = evaluate(trace, prefix, path, rules, labeling)

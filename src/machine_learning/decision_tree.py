@@ -29,7 +29,7 @@ def generate_decision_tree_paths(dt_input, target_label):
 
     X = pd.DataFrame(dt_input.encoded_data, columns=dt_input.features)
     y = pd.Categorical(dt_input.labels, categories=categories)
-    dtc = DecisionTreeClassifier(class_weight="balanced", random_state=0)
+    dtc = DecisionTreeClassifier(class_weight=None, random_state=0)
     dtc.fit(X, y)
 
     # find paths

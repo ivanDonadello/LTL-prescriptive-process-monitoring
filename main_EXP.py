@@ -19,7 +19,7 @@ import time
 def rec_sys_exp(dataset_name):
     # ================ inputs ================
     support_threshold = 0.75
-    output_dir = "media/output/result"
+    output_dir = "media/output/result_tmp"
     train_log_path = "media/input/log/train.xes"
     test_log_path = "media/input/log/test.xes"
     dataset_folder = "media/input/processed_benchmark_event_logs"
@@ -66,7 +66,7 @@ def rec_sys_exp(dataset_name):
                                        ConstraintChecker.NOT_PRECEDENCE,
                                        ConstraintChecker.NOT_CHAIN_PRECEDENCE]}
 
-    constr_family_list = ["existence", "choice", "positive relations", "negative relations"]  # checkers.keys()
+    constr_family_list = ["existence"]#, "choice", "positive relations", "negative relations"]  # checkers.keys()
 
     rules = {
         "vacuous_satisfaction": True,
@@ -182,6 +182,7 @@ if __name__ == "__main__":
                           "hospital_billing_2", "hospital_billing_3", "Production",
                           "sepsis_cases_1", "sepsis_cases_2", "sepsis_cases_4", "traffic_fines_1"]
         datasets_names = ["sepsis_cases_1", "sepsis_cases_2", "sepsis_cases_4", "Production"]
+        datasets_names = ["Production"]
 
         jobs = None
         available_jobs = multiprocessing.cpu_count()
