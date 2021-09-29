@@ -15,6 +15,7 @@ def generate_prefixes(log, prefixing):
                         prefix_model = Prefix(trace.attributes["concept:name"], index, events.copy())
                         prefixes[n].append(prefix_model)
                         break
+
         return prefixes
 
     def up_to(n):

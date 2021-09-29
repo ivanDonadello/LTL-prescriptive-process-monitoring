@@ -7,12 +7,29 @@ from src.models import *
 from src.enums import *
 
 
+import pdb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score
+
+def dt_score(dt_input):
+    categories = [TraceLabel.FALSE.value, TraceLabel.TRUE.value]
+
+    X = pd.DataFrame(dt_input.encoded_data, columns=dt_input.features)
+    y = pd.Categorical(dt_input.labels, categories=categories)
+    dtc = DecisionTreeClassifier(class_weight=None, random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    dtc.fit(X_train, y_train)
+    y_pred = dtc.predict(X_test)
+    # np.sum(y.to_numpy())
+    return f1_score(y_test, y_pred)
+
+
 def generate_decision_tree_paths(dt_input, target_label):
     categories = [TraceLabel.FALSE.value, TraceLabel.TRUE.value]
 
     X = pd.DataFrame(dt_input.encoded_data, columns=dt_input.features)
     y = pd.Categorical(dt_input.labels, categories=categories)
-    dtc = DecisionTreeClassifier(random_state=0)
+    dtc = DecisionTreeClassifier(class_weight=None, random_state=0)
     dtc.fit(X, y)
 
     # find paths
