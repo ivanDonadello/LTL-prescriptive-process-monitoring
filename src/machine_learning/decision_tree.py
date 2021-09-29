@@ -86,4 +86,4 @@ def generate_decision_tree_paths(dt_input, target_label):
             rules=rules
         )
         paths.append(path)
-    return sorted(paths, key=lambda path: (path.impurity, - path.num_samples["total"]), reverse=False)
+    return paths

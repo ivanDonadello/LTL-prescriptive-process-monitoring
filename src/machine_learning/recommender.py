@@ -7,8 +7,6 @@ from src.constants import *
 import csv
 import numpy as np
 from sklearn import metrics
-import pdb
-
 
 def recommend(prefix, path, rules):
     recommendation = ""
@@ -45,7 +43,7 @@ def recommend(prefix, path, rules):
     return recommendation
 
 
-def evaluate(trace, prefix, path, rules, labeling):
+def evaluate(trace, path, rules, labeling):
     is_compliant = True
     for rule in path.rules:
         template, rule_state = rule
@@ -119,43 +117,29 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
 
     for prefix_length in test_prefixes:
         for prefix in test_prefixes[prefix_length]:
+            
+            for path in paths:
+                path.fitness = calcPathFitnessOnPrefix(prefix.events, path, rules)
+            
+            paths = sorted(paths, key=lambda path: (- path.fitness, path.impurity, - path.num_samples["total"]), reverse=False)
 
             selected_path = None
 
             for path_index, path in enumerate(paths):
 
-                if selected_path and (path.impurity != selected_path.impurity or path.num_samples != selected_path.num_samples):
+                if selected_path and (path.fitness != selected_path.fitness or path.impurity != selected_path.impurity or path.num_samples != selected_path.num_samples):
                     break
 
                 recommendation = recommend(prefix.events, path, rules)
 
                 print(f"{prefix_length} {prefix.trace_num} {prefix.trace_id} {path_index}->{recommendation}")
-                #print(generate_label(test_log[prefix.trace_num], labeling))
-                #print(prefix.events[-1]['label'])
-                #print(prefix.events[-1]["concept:name"])
-                #print(len(test_prefixes[key]))
-                #print(len(test_prefixes[key]))
-                """
-                if key > 17:
-                    pdb.set_trace()
-                    for event in prefix.events: print(event["concept:name"])
-                    len(paths)
-                    paths[0].rules
-                    print(generate_label(test_log[prefix.trace_num], labeling))
-                    #for prefix in test_prefixes[key]: generate_label(test_log[prefix.trace_num], labeling)
-
-                    #for id, path in enumerate(paths): print(f"{path.impurity}, {path.num_samples}")
-                """
+                
                 trace = test_log[prefix.trace_num]
-                #for event in prefix.events: print(event["concept:name"])
-                #for id, path in enumerate(paths): print(f"{id} {evaluate(trace, prefix, path, rules, labeling)}")
-                #for id, path in enumerate(paths): print(f"{id}, {path.impurity} {path.num_samples}")
 
                 if recommendation != "Contradiction" and recommendation != "":
-                    #if recommendation != "":
                     selected_path = path
                     trace = test_log[prefix.trace_num]
-                    is_compliant, e = evaluate(trace, prefix, path, rules, labeling)
+                    is_compliant, e = evaluate(trace, path, rules, labeling)
                     if e == ConfusionMatrix.TP:
                         eval_res.tp += 1
                     elif e == ConfusionMatrix.FP:
@@ -182,7 +166,6 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                     pred.append(
                         recommendation_model.num_samples["positive"] / recommendation_model.num_samples["total"])
                     recommendations.append(recommendation_model)
-                    #pdb.set_trace()
 
     try:
         eval_res.precision = eval_res.tp / (eval_res.tp + eval_res.fp)

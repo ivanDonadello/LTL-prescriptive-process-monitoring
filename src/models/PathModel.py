@@ -3,3 +3,4 @@ class PathModel:
         self.impurity = impurity
         self.num_samples = num_samples
         self.rules = rules
+        self.fitness = None

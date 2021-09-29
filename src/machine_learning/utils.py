@@ -1,6 +1,23 @@
+from src.enums.ConstraintChecker import ConstraintChecker
+from src.constants.constants import CONSTRAINT_CHECKER_FUNCTIONS
 from src.models.Prefix import *
 from src.enums import PrefixType
 
+def calcPathFitnessOnPrefix(prefix, path, rules):
+    count = 0
+    for rule in path.rules:
+        template, rule_state = rule
+        template_name, template_params = parse_method(template)
+
+        result = None
+        if template_name in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.INIT.value, ConstraintChecker.EXACTLY.value]:
+            result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](prefix, True, template_params[0], rules)
+        else:
+            result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](prefix, True, template_params[0], template_params[1], rules)
+
+        if rule_state == result.state:
+            count += 1
+    return count / len(path.rules)
 
 def generate_prefixes(log, prefixing):
 
