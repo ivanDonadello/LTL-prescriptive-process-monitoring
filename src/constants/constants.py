@@ -7,7 +7,7 @@ from src.constraint_checkers import negative_relation
 CONSTRAINT_CHECKER_FUNCTIONS = {
     ConstraintChecker.EXISTENCE.value: existence.mp_existence,
     ConstraintChecker.ABSENCE.value: existence.mp_absence,
-    ConstraintChecker.INIT.value: existence.mp_exactly,
+    ConstraintChecker.INIT.value: existence.mp_init,
     ConstraintChecker.EXACTLY.value: existence.mp_exactly,
     ConstraintChecker.CHOICE.value: choice.mp_choice,
     ConstraintChecker.EXCLUSIVE_CHOICE.value: choice.mp_exclusive_choice,

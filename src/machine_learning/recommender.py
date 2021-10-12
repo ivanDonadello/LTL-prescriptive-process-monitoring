@@ -8,6 +8,7 @@ import csv
 import numpy as np
 from sklearn import metrics
 
+
 def recommend(prefix, path, rules):
     recommendation = ""
     for rule in path.rules:
@@ -90,13 +91,45 @@ def test_dt(test_log, train_log, labeling, prefixing, support_threshold, checker
     return dt_score(dt_input=dt_input)
 
 
-def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefixing, support_threshold, checkers,
-                                            rules):
+def train_path_recommender(train_log, labeling, support_threshold, checkers, rules, train_ratio, val_ratio,
+                           dataset_name, constr_family, output_dir):
     if labeling["threshold_type"] == LabelThresholdType.LABEL_MEAN:
         labeling["custom_threshold"] = calc_mean_label_threshold(train_log, labeling)
 
     target_label = labeling["target"]
 
+    parameters = {'support_threshold': [support_threshold-0.1, support_threshold, support_threshold+0.1],
+                  'class_weight': [None, 'balanced'],
+                  'min_samples_split': [2]}
+    """
+    parameters = {'support_threshold': [support_threshold],
+                 'class_weight': [None],
+                  'min_samples_split': [2]}
+    """
+
+    print("Generating decision tree with params optimization ...")
+    param_opt = ParamsOptimizer(train_log, parameters, labeling, checkers, rules, train_ratio, val_ratio)
+    best_model_dict = param_opt.params_grid_search(dataset_name, constr_family)
+    param_opt.model_grid[-1]
+
+    with open(os.path.join(output_dir, 'model_params.csv'), 'a') as f:
+        w = csv.writer(f)
+        w.writerow(best_model_dict.values())
+
+    print("Generating decision tree paths ...")
+    paths = generate_paths(dtc=best_model_dict['model'], dt_input_features=best_model_dict['dt_input_features'],
+                           target_label=target_label)
+    return paths
+
+
+def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefixing, support_threshold, checkers,
+                                            rules, paths):
+    if labeling["threshold_type"] == LabelThresholdType.LABEL_MEAN:
+        labeling["custom_threshold"] = calc_mean_label_threshold(train_log, labeling)
+
+    target_label = labeling["target"]
+
+    """ Old code without parameters optimization
     (frequent_events, frequent_pairs) = generate_frequent_events_and_pairs(train_log, support_threshold)
     
     print("Generating decision tree input ...")
@@ -104,6 +137,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
 
     print("Generating decision tree ...")
     paths = generate_decision_tree_paths(dt_input=dt_input, target_label=target_label)
+    """
 
     print("Generating test prefixes ...")
     test_prefixes = generate_prefixes(test_log, prefixing)
@@ -113,16 +147,17 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     eval_res = EvaluationResult()
     y = []
     pred = []
-    np.sum(dt_input.labels)
 
     for prefix_length in test_prefixes:
         for prefix in test_prefixes[prefix_length]:
             
             for path in paths:
                 path.fitness = calcPathFitnessOnPrefix(prefix.events, path, rules)
-            
+
             paths = sorted(paths, key=lambda path: (- path.fitness, path.impurity, - path.num_samples["total"]), reverse=False)
 
+            #if prefix_length >5:
+               #pdb.set_trace() #for event in prefix.events: print(event['concept:name'])
             selected_path = None
 
             for path_index, path in enumerate(paths):
@@ -132,11 +167,12 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
 
                 recommendation = recommend(prefix.events, path, rules)
 
-                print(f"{prefix_length} {prefix.trace_num} {prefix.trace_id} {path_index}->{recommendation}")
+                #print(f"{prefix_length} {prefix.trace_num} {prefix.trace_id} {path_index}->{recommendation}")
                 
                 trace = test_log[prefix.trace_num]
 
                 if recommendation != "Contradiction" and recommendation != "":
+                    # if recommendation != "":
                     selected_path = path
                     trace = test_log[prefix.trace_num]
                     is_compliant, e = evaluate(trace, path, rules, labeling)
@@ -164,9 +200,10 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                     )
                     y.append(recommendation_model.actual_label)
                     pred.append(
-                        recommendation_model.num_samples["positive"] / recommendation_model.num_samples["total"])
+                       recommendation_model.num_samples["positive"] / recommendation_model.num_samples["total"])
                     recommendations.append(recommendation_model)
-
+    #if prefix_length >11:
+        #pdb.set_trace()
     try:
         eval_res.precision = eval_res.tp / (eval_res.tp + eval_res.fp)
     except ZeroDivisionError:
