@@ -51,7 +51,7 @@ class ParamsOptimizer:
             model_dict['dt_input_features'] = dt_input.features
             self.model_grid.append(model_dict)
 
-        sorted_models = sorted(self.model_grid, key=lambda d: d['f1_score'])
+        sorted_models = sorted(self.model_grid, key=lambda d: d['f1_score_val'])
         best_model_dict = sorted_models[-1]
         return best_model_dict
 
