@@ -1,3 +1,5 @@
+import pdb
+
 from src.machine_learning.utils import *
 from src.machine_learning.apriori import *
 from src.machine_learning.encoding import *
@@ -7,6 +9,145 @@ from src.constants import *
 import csv
 import numpy as np
 from sklearn import metrics
+
+
+class ParamsOptimizer:
+    def __init__(self, train_val_log, val_log, train_log, parameters, labeling, checkers, rules, min_prefix_length, max_prefix_length):
+        self.parameter_names = parameters.keys()
+        self.val_log = val_log
+        self.train_val_log = train_val_log
+        self.param_grid = [element for element in itertools.product(*parameters.values())]
+        self.train_log = train_log
+        self.parameters = parameters
+        self.labeling = labeling
+        self.checkers = checkers
+        self.rules = rules
+        self.model_grid = []
+        self.min_prefix_length = min_prefix_length
+        self.max_prefix_length = max_prefix_length
+
+    def params_grid_search(self, dataset_name, constr_family):
+        categories = [TraceLabel.FALSE.value, TraceLabel.TRUE.value]
+
+        for param_id, param_tuple in enumerate(self.param_grid):
+            model_dict = {'dataset_name': dataset_name, 'constr_family': constr_family, 'parameters': param_tuple,
+                          'f1_score_val': None, 'f1_score_train': None, 'f1_prefix_val': None, 'max_depth': 0,
+                          'id': param_id, 'model': None, 'bo':None}
+
+            (frequent_events_train, frequent_pairs_train) = generate_frequent_events_and_pairs(self.train_val_log, param_tuple[0])
+
+            # Generating decision tree input
+            dt_input_train = encode_traces(self.train_log, frequent_events=frequent_events_train,
+                                           frequent_pairs=frequent_pairs_train, checkers=self.checkers,
+                                           rules=self.rules, labeling=self.labeling)
+            dt_input_val = encode_traces(self.val_log, frequent_events=frequent_events_train,
+                                         frequent_pairs=frequent_pairs_train, checkers=self.checkers,
+                                         rules=self.rules, labeling=self.labeling)
+
+            X_train = pd.DataFrame(dt_input_train.encoded_data, columns=dt_input_train.features)
+            y_train = pd.Categorical(dt_input_train.labels, categories=categories)
+
+            X_val = pd.DataFrame(dt_input_val.encoded_data, columns=dt_input_val.features)
+            y_val = pd.Categorical(dt_input_val.labels, categories=categories)
+
+            # Generating decision tree and its score on a validation set
+            dtc, f1_score_val, f1_score_train = generate_decision_tree(X_train, X_val, y_train, y_val, class_weight=param_tuple[1], min_samples_split=param_tuple[2])
+            print(param_tuple)
+            paths = generate_paths(dtc=dtc, dt_input_features=dt_input_train.features, target_label=self.labeling["target"])
+
+            # Evaluation on val set prefixes
+            results = []
+            for pref_id, prefix_len in enumerate(range(self.min_prefix_length, self.max_prefix_length + 1)):
+                prefixing = {
+                    "type": PrefixType.ONLY,
+                    "length": prefix_len
+                }
+
+                evaluation = evaluate_recommendations(input_log=self.val_log,
+                                                                       labeling=self.labeling, prefixing=prefixing,
+                                                                       rules=self.rules, paths=paths)
+                results.append(evaluation)
+
+            model_dict['model'] = dtc
+            model_dict['max_depth'] = dtc.tree_.max_depth
+            model_dict['f1_score_val'] = f1_score_val
+            model_dict['f1_score_train'] = f1_score_train
+            model_dict['f1_prefix_val'] = np.average([res.fscore for res in results])
+            self.model_grid.append(model_dict)
+
+        # retrain the DT using trainval set with the best params trested on the val set
+        sorted_models = sorted(self.model_grid, key=lambda d: d['f1_prefix_val'])
+        best_model_dict = sorted_models[-1]
+        #pdb.set_trace()
+        (frequent_events_trainval, frequent_pairs_trainval) = generate_frequent_events_and_pairs(self.train_val_log,
+                                                                                           best_model_dict['parameters'][0])
+        dt_input_trainval = encode_traces(self.train_val_log, frequent_events=frequent_events_trainval,
+                                          frequent_pairs=frequent_pairs_trainval, checkers=self.checkers,
+                                          rules=self.rules, labeling=self.labeling)
+        dt_input_val = encode_traces(self.val_log, frequent_events=frequent_events_trainval,
+                                     frequent_pairs=frequent_pairs_trainval, checkers=self.checkers,
+                                     rules=self.rules, labeling=self.labeling)
+
+        X_train_val = pd.DataFrame(dt_input_trainval.encoded_data, columns=dt_input_trainval.features)
+        y_train_val = pd.Categorical(dt_input_trainval.labels, categories=categories)
+        X_val = pd.DataFrame(dt_input_val.encoded_data, columns=dt_input_val.features)
+        y_val = pd.Categorical(dt_input_val.labels, categories=categories)
+
+        dtc, _, _ = generate_decision_tree(X_train_val, X_val, y_train_val, y_val,
+                                                                   class_weight=best_model_dict['parameters'][1],
+                                                                   min_samples_split=best_model_dict['parameters'][2])
+        best_model_dict['model'] = dtc
+        return best_model_dict, dt_input_trainval.features
+
+    def params_grid_search_old(self, dataset_name, constr_family):
+        categories = [TraceLabel.FALSE.value, TraceLabel.TRUE.value]
+
+        for param_id, param_tuple in enumerate(self.param_grid):
+            model_dict = {'dataset_name': dataset_name, 'constr_family': constr_family, 'parameters': param_tuple,
+                          'f1_score_val': None, 'f1_score_train': None, 'max_depth': 0, 'id': param_id, 'model': None,
+                          'dt_input_features': None}
+
+            (frequent_events, frequent_pairs) = generate_frequent_events_and_pairs(self.train_log, param_tuple[0])
+
+            # Generating decision tree input
+            dt_input = encode_traces(log=self.train_log, frequent_events=frequent_events, frequent_pairs=frequent_pairs,
+                                     checkers=self.checkers, rules=self.rules, labeling=self.labeling)
+
+            X = pd.DataFrame(dt_input.encoded_data, columns=dt_input.features)
+            y = pd.Categorical(dt_input.labels, categories=categories)
+            #X_new = SelectKBest(mutual_info_classif, k=int(0.7*X.shape[1])).fit_transform(X, y)
+
+            # Tree
+            #clf = ExtraTreesClassifier(n_estimators=50)
+            #clf = clf.fit(X, y)
+            #model = SelectFromModel(clf, prefit=True)
+            #X_new = model.transform(X)
+
+            X_new = X
+            # Create the RFE object and compute a cross-validated score.
+            #svc = SVC(kernel="linear")
+            #rfe = RFE(estimator=svc, step=1)
+            #rfe.fit(X, y)
+            #X_new = rfe.transform(X)
+
+            print(X_new.shape)
+
+            X_train, X_val, y_train, y_val = train_test_split(X_new, y, test_size=0.1, random_state=42)
+
+            # Generating decision tree and its score on a validation set
+            dtc, f1_score_val, f1_score_train = generate_decision_tree(X_train, X_val, y_train, y_val,
+                                                                       class_weight=param_tuple[1],
+                                                                       min_samples_split=param_tuple[2])
+            model_dict['model'] = dtc
+            model_dict['max_depth'] = dtc.tree_.max_depth
+            model_dict['f1_score_val'] = f1_score_val
+            model_dict['f1_score_train'] = f1_score_train
+            model_dict['dt_input_features'] = dt_input.features
+            self.model_grid.append(model_dict)
+
+        sorted_models = sorted(self.model_grid, key=lambda d: d['f1_score_val'])
+        best_model_dict = sorted_models[-1]
+        return best_model_dict
 
 
 def recommend(prefix, path, rules):
@@ -91,14 +232,14 @@ def test_dt(test_log, train_log, labeling, prefixing, support_threshold, checker
     return dt_score(dt_input=dt_input)
 
 
-def train_path_recommender(train_log, labeling, support_threshold, checkers, rules, train_ratio, val_ratio,
-                           dataset_name, constr_family, output_dir):
+def train_path_recommender(train_val_log, val_log, train_log, labeling, support_threshold, checkers, rules,
+                           dataset_name, constr_family, output_dir, min_prefix_length, max_prefix_length):
     if labeling["threshold_type"] == LabelThresholdType.LABEL_MEAN:
         labeling["custom_threshold"] = calc_mean_label_threshold(train_log, labeling)
 
     target_label = labeling["target"]
 
-    parameters = {'support_threshold': [support_threshold-0.1, support_threshold, support_threshold+0.1],
+    parameters = {'support_threshold': [support_threshold-0.2, support_threshold-0.1, support_threshold, support_threshold+0.1],
                   'class_weight': [None, 'balanced'],
                   'min_samples_split': [2]}
     """
@@ -107,19 +248,86 @@ def train_path_recommender(train_log, labeling, support_threshold, checkers, rul
                   'min_samples_split': [2]}
     """
 
+    if dataset_name == 'traffic_fines_1':
+        parameters['class_weight'] = [None]
+
     print("Generating decision tree with params optimization ...")
-    param_opt = ParamsOptimizer(train_log, parameters, labeling, checkers, rules, train_ratio, val_ratio)
-    best_model_dict = param_opt.params_grid_search(dataset_name, constr_family)
-    param_opt.model_grid[-1]
+    param_opt = ParamsOptimizer(train_val_log, val_log, train_log, parameters, labeling, checkers, rules, min_prefix_length,
+                                max_prefix_length)
+    best_model_dict, feature_names  = param_opt.params_grid_search(dataset_name, constr_family)
 
     with open(os.path.join(output_dir, 'model_params.csv'), 'a') as f:
         w = csv.writer(f)
         w.writerow(best_model_dict.values())
 
     print("Generating decision tree paths ...")
-    paths = generate_paths(dtc=best_model_dict['model'], dt_input_features=best_model_dict['dt_input_features'],
+    paths = generate_paths(dtc=best_model_dict['model'], dt_input_features=feature_names,
                            target_label=target_label)
     return paths
+
+
+def evaluate_recommendations(input_log, labeling, prefixing, rules, paths):
+    #if labeling["threshold_type"] == LabelThresholdType.LABEL_MEAN:
+    #    labeling["custom_threshold"] = calc_mean_label_threshold(train_log, labeling)
+
+    target_label = labeling["target"]
+
+    print("Generating test prefixes ...")
+    prefixes = generate_prefixes(input_log, prefixing)
+
+    eval_res = EvaluationResult()
+
+    for prefix_length in prefixes:
+        for prefix in prefixes[prefix_length]:
+            for path in paths:
+                path.fitness = calcPathFitnessOnPrefix(prefix.events, path, rules)
+
+            paths = sorted(paths, key=lambda path: (- path.fitness, path.impurity, - path.num_samples["total"]),
+                           reverse=False)
+
+            selected_path = None
+
+            for path_index, path in enumerate(paths):
+
+                if selected_path and (
+                        path.fitness != selected_path.fitness or path.impurity != selected_path.impurity or path.num_samples != selected_path.num_samples):
+                    break
+
+                recommendation = recommend(prefix.events, path, rules)
+                # print(f"{prefix_length} {prefix.trace_num} {prefix.trace_id} {path_index}->{recommendation}")
+                trace = input_log[prefix.trace_num]
+
+                if recommendation != "Contradiction" and recommendation != "":
+                    # if recommendation != "":
+                    selected_path = path
+                    trace = input_log[prefix.trace_num]
+                    is_compliant, e = evaluate(trace, path, rules, labeling)
+
+                    if e == ConfusionMatrix.TP:
+                        eval_res.tp += 1
+                    elif e == ConfusionMatrix.FP:
+                        eval_res.fp += 1
+                    elif e == ConfusionMatrix.FN:
+                        eval_res.fn += 1
+                    elif e == ConfusionMatrix.TN:
+                        eval_res.tn += 1
+
+    try:
+        eval_res.precision = eval_res.tp / (eval_res.tp + eval_res.fp)
+    except ZeroDivisionError:
+        eval_res.precision = 0
+
+    try:
+        eval_res.recall = eval_res.tp / (eval_res.tp + eval_res.fn)
+    except ZeroDivisionError:
+        eval_res.recall = 0
+
+    try:
+        eval_res.fscore = 2 * eval_res.precision * eval_res.recall / (eval_res.precision + eval_res.recall)
+    except ZeroDivisionError:
+        eval_res.fscore = 0
+
+    return eval_res
 
 
 def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefixing, support_threshold, checkers,
@@ -156,8 +364,6 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
 
             paths = sorted(paths, key=lambda path: (- path.fitness, path.impurity, - path.num_samples["total"]), reverse=False)
 
-            #if prefix_length >5:
-               #pdb.set_trace() #for event in prefix.events: print(event['concept:name'])
             selected_path = None
 
             for path_index, path in enumerate(paths):
@@ -176,6 +382,19 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                     selected_path = path
                     trace = test_log[prefix.trace_num]
                     is_compliant, e = evaluate(trace, path, rules, labeling)
+
+                    """
+                    if prefix_length > 5:
+                        pdb.set_trace()
+                        # for event in prefix.events: print(event['concept:name'])
+                        # for path in paths: print(path.fitness)
+                        #recommend(prefix.events, paths[0], rules)
+                        #len(paths[0])
+                        #for rule in paths[0]: print(rule)
+                        for path in paths: print(evaluate(trace, path, rules, labeling))
+                    """
+
+
                     if e == ConfusionMatrix.TP:
                         eval_res.tp += 1
                     elif e == ConfusionMatrix.FP:
@@ -202,8 +421,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                     pred.append(
                        recommendation_model.num_samples["positive"] / recommendation_model.num_samples["total"])
                     recommendations.append(recommendation_model)
-    #if prefix_length >11:
-        #pdb.set_trace()
+
     try:
         eval_res.precision = eval_res.tp / (eval_res.tp + eval_res.fp)
     except ZeroDivisionError:

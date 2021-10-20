@@ -13,8 +13,7 @@ class DatasetManager:
     
     def __init__(self, dataset_name):
         self.dataset_name = dataset_name
-        #pdb.set_trace()
-        
+
         self.case_id_col = dataset_confs.case_id_col[self.dataset_name]
         self.activity_col = dataset_confs.activity_col[self.dataset_name]
         self.timestamp_col = dataset_confs.timestamp_col[self.dataset_name]
@@ -52,8 +51,7 @@ class DatasetManager:
         train_ids = list(start_timestamps[self.case_id_col])[:int(train_ratio*len(start_timestamps))]
         train = data[data[self.case_id_col].isin(train_ids)].sort_values(self.timestamp_col, ascending=True, kind='mergesort')
         test = data[~data[self.case_id_col].isin(train_ids)].sort_values(self.timestamp_col, ascending=True, kind='mergesort')
-
-        return (train, test)
+        return train, test
     
     def split_data_strict(self, data, train_ratio, split="temporal"):  
         # split into train and test using temporal split and discard events that overlap the periods
@@ -66,7 +64,7 @@ class DatasetManager:
         test = data[~data[self.case_id_col].isin(train_ids)].sort_values(self.sorting_cols, ascending=True, kind='mergesort')
         split_ts = test[self.timestamp_col].min()
         train = train[train[self.timestamp_col] < split_ts]
-        return (train, test)
+        return train, test
     
     def split_data_discard(self, data, train_ratio, split="temporal"):  
         # split into train and test using temporal split and discard events that overlap the periods

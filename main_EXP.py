@@ -20,7 +20,7 @@ def rec_sys_exp(dataset_name):
     # ================ inputs ================
     support_threshold = 0.75
     output_dir = "media/output"
-    results_dir = os.path.join(output_dir, "result_new")
+    results_dir = os.path.join(output_dir, "result")
     train_log_path = "media/input/log/train.xes"
     test_log_path = "media/input/log/test.xes"
     dataset_folder = "media/input/processed_benchmark_event_logs"
@@ -67,8 +67,8 @@ def rec_sys_exp(dataset_name):
                                        ConstraintChecker.NOT_PRECEDENCE,
                                        ConstraintChecker.NOT_CHAIN_PRECEDENCE]}
 
-    constr_family_list = ["existence", "choice"] #, "choice", "positive relations", "negative relations"]  # checkers.keys()
-    #constr_family_list = checkers.keys()
+    #constr_family_list = ["existence", "choice"] #, "choice", "positive relations", "negative relations"]  # checkers.keys()
+    constr_family_list = checkers.keys()
     rules = {
         "vacuous_satisfaction": True,
         "activation": "",  # e.g. A.attr > 6
@@ -94,9 +94,10 @@ def rec_sys_exp(dataset_name):
     data = dataset_manager.read_dataset(os.path.join(os.getcwd(), dataset_folder))
 
     # split into training and test
-    train_ratio = 0.8
-    val_ratio = 0.1
-    train_df, test_df = dataset_manager.split_data_strict(data, train_ratio, split="temporal")
+    train_val_ratio = 0.8
+    train_ratio = 0.9
+    train_val_df, test_df = dataset_manager.split_data_strict(data, train_val_ratio, split="temporal")
+    train_df, val_df = dataset_manager.split_data_strict(train_val_df, train_ratio, split="temporal")
 
     # determine min and max (truncated) prefix lengths
     min_prefix_length = 1
@@ -113,8 +114,16 @@ def rec_sys_exp(dataset_name):
     test_df = test_df.rename(
         columns={dataset_manager.timestamp_col: 'time:timestamp', dataset_manager.case_id_col: 'case:concept:name',
                  dataset_manager.activity_col: 'concept:name'})
+    val_df = val_df.rename(
+        columns={dataset_manager.timestamp_col: 'time:timestamp', dataset_manager.case_id_col: 'case:concept:name',
+                 dataset_manager.activity_col: 'concept:name'})
+    train_val_df = train_val_df.rename(
+        columns={dataset_manager.timestamp_col: 'time:timestamp', dataset_manager.case_id_col: 'case:concept:name',
+                 dataset_manager.activity_col: 'concept:name'})
+    val_log = log_converter.apply(val_df)
     train_log = log_converter.apply(train_df)
     test_log = log_converter.apply(test_df)
+    train_val_log = log_converter.apply(train_val_df)
 
     # TODO trace bucketing
     # train_log_al = pm4py.read_xes(train_log_path)
@@ -142,11 +151,9 @@ def rec_sys_exp(dataset_name):
     # generate recommendations and evaluation
     results = {family: [] for family in constr_family_list}
     for constr_family in constr_family_list:
-
-        paths = train_path_recommender(train_log=train_log, labeling=labeling, support_threshold=support_threshold,
-                                       checkers=checkers[constr_family], rules=rules, train_ratio=train_ratio,
-                                       val_ratio=val_ratio, dataset_name=dataset_name, constr_family=constr_family,
-                                       output_dir=output_dir)
+        paths = train_path_recommender(train_val_log=train_val_log, val_log=val_log, train_log=train_log, labeling=labeling, support_threshold=support_threshold,
+                                       checkers=checkers[constr_family], rules=rules, dataset_name=dataset_name, constr_family=constr_family,
+                                       output_dir=output_dir, min_prefix_length=min_prefix_length, max_prefix_length=max_prefix_length)
 
         for pref_id, prefix_len in enumerate(range(min_prefix_length, max_prefix_length + 1)):
             print(
@@ -165,7 +172,7 @@ def rec_sys_exp(dataset_name):
                                                                                   paths=paths)
             results[constr_family].append(evaluation)
 
-            for metric in ["accuracy", "fscore", "auc"]:
+            for metric in ["fscore"]: #["accuracy", "fscore", "auc"]:
                 print(f"{metric} for {constr_family}: {getattr(results[constr_family][pref_id], metric)}")
     plot = PlotResult(results, folder=results_dir)
 
@@ -189,8 +196,8 @@ if __name__ == "__main__":
                           "bpic2012_accepted", "bpic2012_declined",
                           "hospital_billing_2", "hospital_billing_3", "Production",
                           "sepsis_cases_1", "sepsis_cases_2", "sepsis_cases_4", "traffic_fines_1"]
-        #datasets_names = ["sepsis_cases_1", "sepsis_cases_2", "sepsis_cases_4", "ProductProductionion"]
-        datasets_names = ["hospital_billing_2"]
+        #datasets_names = ["sepsis_cases_1", "sepsis_cases_2", "sepsis_cases_4", "Production"]
+        #datasets_names = ["Production"]
 
         jobs = None
         available_jobs = multiprocessing.cpu_count()

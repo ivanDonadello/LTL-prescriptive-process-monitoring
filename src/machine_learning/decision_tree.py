@@ -22,6 +22,7 @@ def dt_score(dt_input):
     # np.sum(y.to_numpy())
     return f1_score(y_test, y_pred)
 
+
 def generate_boost_decision_tree(X_train, X_val, y_train, y_val, class_weight, min_samples_split):
     #dtc = DecisionTreeClassifier(min_samples_split=min_samples_split, class_weight=class_weight, random_state=0)
     dtc = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, random_state=0).fit(X_train, y_train)
