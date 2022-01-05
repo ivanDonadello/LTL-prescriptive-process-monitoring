@@ -6,6 +6,7 @@ from src.dataset_manager import dataset_confs
 import pandas as pd
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 from sklearn.model_selection import StratifiedKFold
 
 
@@ -80,8 +81,7 @@ class DatasetManager:
         train = train[~train[self.case_id_col].isin(overlapping_cases)]
         return (train, test)
     
-    
-    def split_val(self, data, val_ratio, split="random", seed=22):  
+    def split_val(self, data, val_ratio, split="random", seed=22):
         # split into train and test using temporal split
         grouped = data.groupby(self.case_id_col)
         start_timestamps = grouped[self.timestamp_col].min().reset_index()
@@ -94,7 +94,6 @@ class DatasetManager:
         val = data[data[self.case_id_col].isin(val_ids)].sort_values(self.sorting_cols, ascending=True, kind="mergesort")
         train = data[~data[self.case_id_col].isin(val_ids)].sort_values(self.sorting_cols, ascending=True, kind="mergesort")
         return (train, val)
-
 
     def generate_prefix_data(self, data, min_length, max_length, gap=1):
         # generate prefix data (each possible prefix becomes a trace)
@@ -111,12 +110,13 @@ class DatasetManager:
             dt_prefixes = pd.concat([dt_prefixes, tmp], axis=0)
         
         dt_prefixes['case_length'] = dt_prefixes['case_length'].apply(lambda x: min(max_length, x))
-        
         return dt_prefixes
 
-
     def get_pos_case_length_quantile(self, data, quantile=0.90):
-        return int(np.ceil(data[data[self.label_col]==self.pos_label].groupby(self.case_id_col).size().quantile(quantile)))
+        hist = data.groupby(self.case_id_col).size().plot.hist(bins=20)
+        hist_1 = data[data[self.label_col] == self.pos_label].groupby(self.case_id_col).size().plot.hist(bins=20)
+        plt.savefig(f'lbl_hist_{self.dataset_name}.pdf')
+        return int(np.ceil(data[data[self.label_col] == self.pos_label].groupby(self.case_id_col).size().quantile(quantile)))
 
     def get_indexes(self, data):
         return data.groupby(self.case_id_col).first().index

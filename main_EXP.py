@@ -1,8 +1,12 @@
+import copy
+
 import pm4py
 import os
 import shutil
 import csv
 import pdb
+import settings
+import platform
 from src.dataset_manager.datasetManager import DatasetManager
 from src.enums.ConstraintChecker import ConstraintChecker
 from src.machine_learning.utils import *
@@ -14,71 +18,10 @@ import argparse
 import multiprocessing
 import sys
 import time
+import numpy as np
 
 
 def rec_sys_exp(dataset_name):
-    # ================ inputs ================
-    support_threshold = 0.75
-    output_dir = "media/output"
-    results_dir = os.path.join(output_dir, "result")
-    train_log_path = "media/input/log/train.xes"
-    test_log_path = "media/input/log/test.xes"
-    dataset_folder = "media/input/processed_benchmark_event_logs"
-
-    checkers = {"existence": [ConstraintChecker.EXISTENCE,
-                              ConstraintChecker.ABSENCE,
-                              ConstraintChecker.INIT,
-                              ConstraintChecker.EXACTLY],
-                "choice": [ConstraintChecker.EXISTENCE,
-                           ConstraintChecker.ABSENCE,
-                           ConstraintChecker.INIT,
-                           ConstraintChecker.EXACTLY,
-                           ConstraintChecker.CHOICE,
-                           ConstraintChecker.EXCLUSIVE_CHOICE],
-                "positive relations": [ConstraintChecker.EXISTENCE,
-                                       ConstraintChecker.ABSENCE,
-                                       ConstraintChecker.INIT,
-                                       ConstraintChecker.EXACTLY,
-                                       ConstraintChecker.CHOICE,
-                                       ConstraintChecker.EXCLUSIVE_CHOICE,
-                                       ConstraintChecker.RESPONDED_EXISTENCE,
-                                       ConstraintChecker.RESPONSE,
-                                       ConstraintChecker.ALTERNATE_RESPONSE,
-                                       ConstraintChecker.CHAIN_RESPONSE,
-                                       ConstraintChecker.PRECEDENCE,
-                                       ConstraintChecker.ALTERNATE_PRECEDENCE,
-                                       ConstraintChecker.CHAIN_PRECEDENCE],
-                "negative relations": [ConstraintChecker.EXISTENCE,
-                                       ConstraintChecker.ABSENCE,
-                                       ConstraintChecker.INIT,
-                                       ConstraintChecker.EXACTLY,
-                                       ConstraintChecker.CHOICE,
-                                       ConstraintChecker.EXCLUSIVE_CHOICE,
-                                       ConstraintChecker.RESPONDED_EXISTENCE,
-                                       ConstraintChecker.RESPONSE,
-                                       ConstraintChecker.ALTERNATE_RESPONSE,
-                                       ConstraintChecker.CHAIN_RESPONSE,
-                                       ConstraintChecker.PRECEDENCE,
-                                       ConstraintChecker.ALTERNATE_PRECEDENCE,
-                                       ConstraintChecker.CHAIN_PRECEDENCE,
-                                       ConstraintChecker.NOT_RESPONDED_EXISTENCE,
-                                       ConstraintChecker.NOT_RESPONSE,
-                                       ConstraintChecker.NOT_CHAIN_RESPONSE,
-                                       ConstraintChecker.NOT_PRECEDENCE,
-                                       ConstraintChecker.NOT_CHAIN_PRECEDENCE]}
-
-    #constr_family_list = ["existence", "choice"] #, "choice", "positive relations", "negative relations"]  # checkers.keys()
-    constr_family_list = checkers.keys()
-    rules = {
-        "vacuous_satisfaction": True,
-        "activation": "",  # e.g. A.attr > 6
-        "correlation": "",  # e.g. T.attr < 12
-        "n": {
-            ConstraintChecker.EXISTENCE: 1,
-            ConstraintChecker.ABSENCE: 1,
-            ConstraintChecker.EXACTLY: 1,
-        }
-    }
 
     # ================ inputs ================
 
@@ -87,11 +30,14 @@ def rec_sys_exp(dataset_name):
     # os.makedirs(os.path.join(results_dir))
 
     # generate rules
-    rules["activation"] = generate_rules(rules["activation"])
-    rules["correlation"] = generate_rules(rules["correlation"])
+    settings.rules["activation"] = generate_rules(settings.rules["activation"])
+    settings.rules["correlation"] = generate_rules(settings.rules["correlation"])
 
     dataset_manager = DatasetManager(dataset_name.lower())
-    data = dataset_manager.read_dataset(os.path.join(os.getcwd(), dataset_folder))
+    data = dataset_manager.read_dataset(os.path.join(os.getcwd(), settings.dataset_folder))
+    #"""
+
+    #"""
 
     # split into training and test
     train_val_ratio = 0.8
@@ -102,11 +48,15 @@ def rec_sys_exp(dataset_name):
     # determine min and max (truncated) prefix lengths
     min_prefix_length = 1
     if "traffic_fines" in dataset_name:
-        max_prefix_length = 10
+        max_prefix_length = 9
     elif "bpic2017" in dataset_name:
         max_prefix_length = min(20, dataset_manager.get_pos_case_length_quantile(test_df, 0.90))
     else:
         max_prefix_length = min(40, dataset_manager.get_pos_case_length_quantile(test_df, 0.90))
+
+    data = data.rename(columns={dataset_manager.timestamp_col: 'time:timestamp',
+                                dataset_manager.case_id_col: 'case:concept:name',
+                                dataset_manager.activity_col: 'concept:name'})
 
     train_df = train_df.rename(
         columns={dataset_manager.timestamp_col: 'time:timestamp', dataset_manager.case_id_col: 'case:concept:name',
@@ -124,6 +74,8 @@ def rec_sys_exp(dataset_name):
     train_log = log_converter.apply(train_df)
     test_log = log_converter.apply(test_df)
     train_val_log = log_converter.apply(train_val_df)
+    data_log = log_converter.apply(data)
+
 
     # TODO trace bucketing
     # train_log_al = pm4py.read_xes(train_log_path)
@@ -149,13 +101,18 @@ def rec_sys_exp(dataset_name):
     """
 
     # generate recommendations and evaluation
-    results = {family: [] for family in constr_family_list}
-    for constr_family in constr_family_list:
-        paths = train_path_recommender(train_val_log=train_val_log, val_log=val_log, train_log=train_log, labeling=labeling, support_threshold=support_threshold,
-                                       checkers=checkers[constr_family], rules=rules, dataset_name=dataset_name, constr_family=constr_family,
-                                       output_dir=output_dir, min_prefix_length=min_prefix_length, max_prefix_length=max_prefix_length)
+    results = {family: [] for family in settings.constr_family_list}
+    for constr_family in settings.constr_family_list:
+        paths = train_path_recommender(data_log=data_log, train_val_log=train_val_log, val_log=val_log, train_log=train_log, labeling=labeling, support_threshold=settings.support_threshold_dict,
+                                       checkers=settings.checkers[constr_family], rules=settings.rules, dataset_name=dataset_name, constr_family=constr_family,
+                                       output_dir=settings.output_dir, min_prefix_length=min_prefix_length, max_prefix_length=max_prefix_length)
+        prefix_lenght_list = list(range(min_prefix_length, max_prefix_length + 1))
 
-        for pref_id, prefix_len in enumerate(range(min_prefix_length, max_prefix_length + 1)):
+        eval_res = None
+        if settings.cumulative_res is True:
+            eval_res = EvaluationResult()
+
+        for pref_id, prefix_len in enumerate(prefix_lenght_list):
             print(
                 f"<--- DATASET: {dataset_name}, CONSTRAINTS: {constr_family}, PREFIX LEN: {prefix_len}/{max_prefix_length} --->")
             prefixing = {
@@ -166,38 +123,37 @@ def rec_sys_exp(dataset_name):
                                                                                   train_log=train_log,
                                                                                   labeling=labeling,
                                                                                   prefixing=prefixing,
-                                                                                  support_threshold=support_threshold,
-                                                                                  checkers=checkers[constr_family],
-                                                                                  rules=rules,
-                                                                                  paths=paths)
+                                                                                  support_threshold=settings.support_threshold_dict,
+                                                                                  checkers=settings.checkers[constr_family],
+                                                                                  rules=settings.rules,
+                                                                                  paths=paths,
+                                                                                  dataset_name=dataset_name,
+                                                                                  eval_res=eval_res)
             results[constr_family].append(evaluation)
+            if settings.cumulative_res is True:
+                eval_res = copy.deepcopy(evaluation)
 
-            for metric in ["fscore"]: #["accuracy", "fscore", "auc"]:
+            for metric in ["fscore", "gain"]:  # ["accuracy", "fscore", "auc"]:
                 print(f"{metric} for {constr_family}: {getattr(results[constr_family][pref_id], metric)}")
-    plot = PlotResult(results, folder=results_dir)
+    plot = PlotResult(results, prefix_lenght_list, settings.results_dir)
 
-    for metric in ["accuracy", "fscore", "auc"]:
-        plot.toPng(f"{metric}", f"{dataset_name}_{metric}")
+    for metric in ["fscore", "gain"]:
+        plot.toPng(metric, f"{dataset_name}_{metric}")
+        """
         with open(os.path.join(results_dir, f"{dataset_name}_{metric}.csv"), mode='w') as out_file:
             writer = csv.writer(out_file, delimiter=',')
             for constr_family in constr_family_list:
                 writer.writerow([constr_family] + [getattr(res_obj, metric) for res_obj in results[constr_family]])
+        """
+    prefix_evaluation_to_csv(results, dataset_name)
+    return dataset_name, results
 
 
 if __name__ == "__main__":
+        print_lock = multiprocessing.Lock()
         parser = argparse.ArgumentParser(description="Experiments for outcome-based prescriptive process monitoring")
         parser.add_argument("-j", "--jobs", type=int, help="Number of jobs to run in parallel. If -1 all CPUs are used.")
         args = parser.parse_args()
-
-        datasets_names = ["bpic2011_f1", "bpic2011_f2", "bpic2011_f3", "bpic2011_f4",
-                          "bpic2015_1_f2", "bpic2015_2_f2", "bpic2015_3_f2", "bpic2015_4_f2",
-                          "bpic2015_5_f2", "bpic2017_accepted", "bpic2017_cancelled",
-                          "bpic2017_refused", "bpic2012_cancelled",
-                          "bpic2012_accepted", "bpic2012_declined",
-                          "hospital_billing_2", "hospital_billing_3", "Production",
-                          "sepsis_cases_1", "sepsis_cases_2", "sepsis_cases_4", "traffic_fines_1"]
-        #datasets_names = ["sepsis_cases_1", "sepsis_cases_2", "sepsis_cases_4", "Production"]
-        #datasets_names = ["Production"]
 
         jobs = None
         available_jobs = multiprocessing.cpu_count()
@@ -207,17 +163,41 @@ if __name__ == "__main__":
                 sys.exit(2)
             jobs = available_jobs if args.jobs == -1 else args.jobs
 
-        #final_results = []
+        final_results = {}
         start_time = time.time()
         if jobs is None or jobs == 1:
-            for dataset in datasets_names:
-                rec_sys_exp(dataset)
-                #final_results.append(rec_sys_exp(dataset))
+            for dataset in settings.datasets_names:
+                _, res_obj = rec_sys_exp(dataset)
+                final_results[dataset] = res_obj
         else:
-            pool = multiprocessing.Pool(processes=jobs)
-            #final_results = \
-            print("")
-            pool.map(rec_sys_exp, datasets_names)
-            pool.close()
+            tmp_list_results = []
+            if platform.platform().split('-')[0] == 'macOS' or platform.platform().split('-')[0] == 'Darwin':
+                with multiprocessing.get_context("spawn").Pool(processes=jobs) as pool:
+                    tmp_list_results = pool.map(rec_sys_exp, settings.datasets_names)
+            else:
+                pool = multiprocessing.Pool(processes=jobs)
+                # tmp_list_results = [pool.apply_async(rec_sys_exp, args=(ds, )) for ds in settings.datasets_names]
+                # pool.close()
 
+                tmp_list_results = pool.map(rec_sys_exp, settings.datasets_names)
+                pool.close()
+
+                """
+                r = []
+                for p in tmp_list_results:
+                    try:
+                        r.append(p.get())
+                    except Exception:
+                        print("error getting process: %s" % os.getpid())
+                r = tmp_list_results
+                """
+            final_results = dict(tmp_list_results)
+
+        with open(os.path.join(settings.output_dir, f"results.csv"), mode='w') as out_file:
+            writer = csv.writer(out_file, delimiter=',')
+            writer.writerow(["Dataset"] + 2*list(settings.constr_family_list))
+            for dataset in settings.datasets_names:
+                writer.writerow([dataset] +
+                                [round(100*np.mean([getattr(res_obj, 'fscore') for res_obj in final_results[dataset][constr_family]]), 2) for constr_family in settings.constr_family_list] +
+                                [round(np.mean([getattr(res_obj, 'gain') for res_obj in final_results[dataset][constr_family]]), 2) for constr_family in settings.constr_family_list])
         print(f"Simulations took {(time.time() - start_time) / 3600.} hours")

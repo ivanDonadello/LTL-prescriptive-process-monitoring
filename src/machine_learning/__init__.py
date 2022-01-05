@@ -4,3 +4,4 @@ from .labeling import *
 from .utils import *
 from .encoding import *
 from .recommender import *
+from .Bucketers import *

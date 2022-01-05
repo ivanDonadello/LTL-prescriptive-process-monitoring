@@ -4,3 +4,4 @@ class PathModel:
         self.num_samples = num_samples
         self.rules = rules
         self.fitness = None
+        self.score = None

@@ -51,4 +51,4 @@ def generate_frequent_events_and_pairs(log, support_threshold):
         (x, y) = pair
         reverse_pair = (y, x)
         all_frequent_pairs.extend([pair, reverse_pair])
-    return (frequent_events, all_frequent_pairs)
+    return frequent_events, all_frequent_pairs

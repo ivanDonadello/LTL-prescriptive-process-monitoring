@@ -1,9 +1,10 @@
 from src.enums.ConstraintChecker import ConstraintChecker
+from src.enums import TraceState
 from src.constants.constants import CONSTRAINT_CHECKER_FUNCTIONS
 from src.models.Prefix import *
 from src.machine_learning.encoding import encode_traces
 from src.machine_learning.apriori import generate_frequent_events_and_pairs
-from src.machine_learning.decision_tree import generate_decision_tree, generate_paths, generate_boost_decision_tree
+#from src.machine_learning.decision_tree import generate_decision_tree, generate_paths, generate_boost_decision_tree
 from src.enums import PrefixType
 from sklearn.model_selection import train_test_split
 import itertools
@@ -20,12 +21,46 @@ from sklearn.feature_selection import RFE
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2, mutual_info_classif
 import pdb
+import settings
+import math
 
 
-def calcPathFitnessOnPrefix(prefix, path, rules):
-    count = 0
-    for rule in path.rules:
-        template, rule_state = rule
+def gain(c, nc, pc, pnc):
+    prob_pos_comp = (pc + settings.smooth_factor) / (c + settings.smooth_factor * settings.num_classes)
+    prob_pos_non_comp = (pnc + settings.smooth_factor) / (nc + settings.smooth_factor * settings.num_classes)
+    _gain = prob_pos_comp / prob_pos_non_comp
+    return _gain
+
+
+def matthews_corrcoef(tp, fp, fn, tn):
+    num = tp*tn - fp*fn
+    denom = math.sqrt((tp+fp)*(tp+fn)*(tn+fp)*(tn+fn))
+    if denom == 0:
+        return 0
+    else:
+        return num/denom
+
+
+def calcScore(path, pos_paths_total_samples_):
+    purity = 1 - path.impurity
+    pos_probabiity = path.num_samples['positive']/pos_paths_total_samples_
+    w = np.array([0.8, 0.1, 0.1])
+    w = np.array([0.0, 0, 0])
+    #pdb.set_trace()
+
+    if path.num_samples['node_samples'] > 2:
+        w = np.array([0.6, 0.2, 0.2])
+
+    return np.mean(w*np.array([path.fitness, purity, pos_probabiity]))
+    # return path.fitness*1#pos_probabiity
+
+
+def calcPathFitnessOnPrefixGOOD(prefix, path, rules, fitness_type):
+    path_weights = []
+    path_activated_rules = np.zeros(len(path.rules))
+    fitness = None
+    for rule_idx, rule in enumerate(path.rules):
+        template, rule_state, _ = rule
         template_name, template_params = parse_method(template)
 
         result = None
@@ -35,11 +70,59 @@ def calcPathFitnessOnPrefix(prefix, path, rules):
             result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](prefix, True, template_params[0], template_params[1], rules)
 
         if rule_state == result.state:
-            count += 1
-    return count / len(path.rules)
+            path_activated_rules[rule_idx] = 1
+        path_weights.append(1/(rule_idx+1))
+
+    if fitness_type == 'mean':
+        fitness = np.mean(path_activated_rules)
+    elif fitness_type == 'wmean':
+        fitness = np.sum(path_weights*path_activated_rules)/np.sum(path_weights)
+
+    return fitness
+
+
+def calcPathFitnessOnPrefix(prefix, path, rules, fitness_type):
+    path_weights = []
+    path_activated_rules = np.zeros(len(path.rules))
+    fitness = None
+    for rule_idx, rule in enumerate(path.rules):
+        template, rule_state, _ = rule
+        template_name, template_params = parse_method(template)
+
+        result = None
+        if settings.use_score:
+            if template_name in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.INIT.value, ConstraintChecker.EXACTLY.value]:
+                result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](prefix, False, template_params[0], rules)
+            else:
+                result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](prefix, False, template_params[0], template_params[1], rules)
+
+            if rule_state == TraceState.VIOLATED and result.state == TraceState.POSSIBLY_VIOLATED:
+                path_activated_rules[rule_idx] = 1
+            elif rule_state == TraceState.SATISFIED and result.state == TraceState.POSSIBLY_VIOLATED:
+                path_activated_rules[rule_idx] = 0.5
+            elif rule_state == TraceState.VIOLATED and result.state == TraceState.POSSIBLY_SATISFIED:
+                path_activated_rules[rule_idx] = 0.5
+            elif rule_state == TraceState.SATISFIED and result.state == TraceState.POSSIBLY_SATISFIED:
+                path_activated_rules[rule_idx] = 1
+        else:
+            if template_name in [ConstraintChecker.EXISTENCE.value, ConstraintChecker.ABSENCE.value, ConstraintChecker.INIT.value, ConstraintChecker.EXACTLY.value]:
+                result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](prefix, True, template_params[0], rules)
+            else:
+                result = CONSTRAINT_CHECKER_FUNCTIONS[template_name](prefix, True, template_params[0], template_params[1], rules)
+
+        if rule_state == result.state:
+            path_activated_rules[rule_idx] = 1
+        path_weights.append(1/(rule_idx+1))
+
+    if fitness_type == 'mean':
+        fitness = np.mean(path_activated_rules)
+    elif fitness_type == 'wmean':
+        fitness = np.sum(path_weights*path_activated_rules)/np.sum(path_weights)
+
+    return fitness
+
 
 def generate_prefixes(log, prefixing):
-
     def only(n):
         prefixes = {n: []}
         for index, trace in enumerate(log):
