@@ -5,6 +5,10 @@ import graphviz
 from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from sklearn import tree
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
+from sklearn.feature_selection import mutual_info_classif
+import math
 from sklearn.tree import DecisionTreeClassifier
 from src.models import *
 from src.enums import *
@@ -25,12 +29,12 @@ from pm4py.objects.log import obj as log
 from pm4py.objects.log.util.get_prefixes import get_log_with_log_prefixes
 
 
-def find_best_dt(dataset_name, constr_family, data, checkers, rules, labeling, support_threshold_dict, render_dt):
+def find_best_dt(dataset_name, constr_family, data, checkers, rules, labeling, support_threshold_dict, render_dt, num_feat_strategy):
     print("DT params optimization ...")
     categories = [TraceLabel.FALSE.value, TraceLabel.TRUE.value]
     model_dict = {'dataset_name': dataset_name, 'constr_family': constr_family, 'parameters': (),
                   'f1_score_val': None, 'f1_score_train': None, 'f1_prefix_val': None, 'max_depth': 0,
-                  'model': None, 'frequent_events': None, 'frequent_pairs': None}
+                  'model': None}
 
     (frequent_events_train, frequent_pairs_train) = generate_frequent_events_and_pairs(data,
                                                                                        support_threshold_dict['min'])
@@ -79,14 +83,21 @@ def find_best_dt(dataset_name, constr_family, data, checkers, rules, labeling, s
     dt_input_trainval = encode_traces(data, frequent_events=frequent_events_train, frequent_pairs=frequent_pairs_train,
                                       checkers=checkers, rules=rules, labeling=labeling)
 
-
-
     X_train = pd.DataFrame(dt_input_trainval.encoded_data, columns=dt_input_trainval.features)
     y_train = pd.Categorical(dt_input_trainval.labels, categories=categories)
 
+    if num_feat_strategy == 'sqrt':
+        num_feat = int(math.sqrt(len(dt_input_trainval.features)))
+    else:
+        num_feat = int(num_feat_strategy * len(dt_input_trainval.features))
+
+    sel = SelectKBest(mutual_info_classif, k=num_feat)
+    X_train = sel.fit_transform(X_train, y_train)
+    cols = sel.get_support(indices=True)
+    new_feature_names = np.array(dt_input_trainval.features)[cols]
+
     print("Grid search ...")
-    search = GridSearchCV(estimator=DecisionTreeClassifier(random_state=0), param_grid=settings.dt_hyperparameters,
-                          scoring="f1", return_train_score=True, cv=5)
+    search = GridSearchCV(estimator=DecisionTreeClassifier(random_state=0), param_grid=settings.dt_hyperparameters, scoring="f1", return_train_score=True, cv=5)
     search.fit(X_train, y_train)
 
     model_dict['model'] = search.best_estimator_
@@ -99,11 +110,11 @@ def find_best_dt(dataset_name, constr_family, data, checkers, rules, labeling, s
 
     if render_dt:
         dot_data = tree.export_graphviz(search.best_estimator_, out_file=None, impurity=True,
-                                        feature_names=dt_input_trainval.features, node_ids=True, filled=True)
+                                        feature_names=new_feature_names, node_ids=True, filled=True)
                                         # class_names=['regular', 'deviant'])
         graph = graphviz.Source(dot_data, format="pdf")
         graph.render(os.path.join(settings.output_dir, f'DT_{dataset_name}_{constr_family}'))
-    return model_dict, dt_input_trainval.features
+    return model_dict, support_threshold_dict
 
 
 def dt_score(dt_input):

@@ -1,8 +1,7 @@
-import pdb
 import copy
-from src.machine_learning.utils import *
-from src.machine_learning.apriori import *
-from src.machine_learning.encoding import *
+#from src.machine_learning.utils import *
+#from src.machine_learning.apriori import *
+#from src.machine_learning.encoding import *
 from src.machine_learning.decision_tree import *
 from src.models import EvaluationResult
 from src.constants import *
@@ -232,7 +231,7 @@ def evaluate_OLD(trace, path, rules, labeling):
     return is_compliant, cm
 
 
-def evaluate(trace, path, rules, labeling, eval_type='strong'):
+def evaluate(trace, path, rules, labeling, sat_threshold, eval_type='strong'):
     # Compliantness con different strategies
     is_compliant = True
     rule_occurencies = 0
@@ -270,9 +269,9 @@ def evaluate(trace, path, rules, labeling, eval_type='strong'):
                 break
 
     if eval_type == 'count_activations':
-        is_compliant = True if np.mean(rule_activations) > settings.sat_threshold else False
+        is_compliant = True if np.mean(rule_activations) > sat_threshold else False
     elif eval_type == 'count_occurrences':
-        is_compliant = True if rule_occurencies / len(path.rules) > settings.sat_threshold else False
+        is_compliant = True if rule_occurencies / len(path.rules) > sat_threshold else False
 
     label = generate_label(trace, labeling)
 
@@ -305,7 +304,7 @@ def test_dt(test_log, train_log, labeling, prefixing, support_threshold, checker
 
 
 def train_path_recommender(data_log, train_val_log, val_log, train_log, labeling, support_threshold, checkers, rules,
-                           dataset_name, constr_family, output_dir, min_prefix_length, max_prefix_length):
+                           dataset_name, constr_family, output_dir, min_prefix_length, max_prefix_length, feat_strategy):
     if labeling["threshold_type"] == LabelThresholdType.LABEL_MEAN:
         labeling["custom_threshold"] = calc_mean_label_threshold(train_log, labeling)
 
@@ -318,15 +317,16 @@ def train_path_recommender(data_log, train_val_log, val_log, train_log, labeling
     print("Generating decision tree with params optimization ...")
     if settings.optmize_dt:
         best_model_dict, feature_names = find_best_dt(dataset_name, constr_family, train_val_log, checkers, rules,
-                                                      labeling, support_threshold, settings.print_dt)
+                                                      labeling, support_threshold, settings.print_dt, feat_strategy)
     else:
         param_opt = ParamsOptimizer(data_log, train_val_log, val_log, train_log, settings.hyperparameters, labeling,
                                     checkers, rules, min_prefix_length, max_prefix_length)
         best_model_dict, feature_names = param_opt.params_grid_search(dataset_name, constr_family)
 
     with open(os.path.join(output_dir, 'model_params.csv'), 'a') as f:
-        w = csv.writer(f)
-        w.writerow(best_model_dict.values())
+        w = csv.writer(f, delimiter='\t')
+        row = list(best_model_dict.values())
+        w.writerow(row[:-1]) # do not print the model
 
     print("Generating decision tree paths ...")
     paths = generate_paths(dtc=best_model_dict['model'], dt_input_features=feature_names,
@@ -409,7 +409,7 @@ def evaluate_recommendations(input_log, labeling, prefixing, rules, paths):
 
 
 def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefixing, support_threshold, checkers,
-                                            rules, paths, dataset_name, eval_res=None):
+                                            rules, paths, dataset_name, hyperparams_evaluation, eval_res=None, debug=False):
     if labeling["threshold_type"] == LabelThresholdType.LABEL_MEAN:
         labeling["custom_threshold"] = calc_mean_label_threshold(train_log, labeling)
 
@@ -436,6 +436,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     pred = []
 
     for prefix_length in test_prefixes:
+        #pdb.set_trace()
         eval_res.prefix_length = prefix_length
         # for id, pref in enumerate(test_prefixes[prefix_length]): print(id, test_log[pref.trace_num][0]['label'])
         for prefix in test_prefixes[prefix_length]:
@@ -446,8 +447,8 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                 pos_paths_total_samples += path.num_samples['node_samples']
             for path in paths:
                 path.fitness = calcPathFitnessOnPrefix(prefix.events, path, rules, settings.fitness_type)
-                path.score = calcScore(path, pos_paths_total_samples)
-
+                path.score = calcScore(path, pos_paths_total_samples, weights=hyperparams_evaluation[1:])
+                pdb.set_trace()
 
             # paths = sorted(paths, key=lambda path: (- path.fitness, path.impurity, - path.num_samples["total"]), reverse=False)
             if settings.use_score:
@@ -487,9 +488,29 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
 
                     selected_path = path
                     trace = test_log[prefix.trace_num]
-                    is_compliant, e = evaluate(trace, path, rules, labeling, eval_type=settings.sat_type)
-                    #if prefix_length > 4:
-                    #   pdb.set_trace()
+                    #print(prefix.trace_id, trace[0]['label'])
+                    is_compliant, e = evaluate(trace, path, rules, labeling, sat_threshold=hyperparams_evaluation[0],
+                                               eval_type=settings.sat_type)
+                    #if prefix_length == 12 or prefix_length == 12:
+                        #pdb.set_trace()
+                    #pdb.set_trace()
+                    if debug:
+                        #pdb.set_trace()
+                        if prefix.trace_id == 'GX' and prefix_length == 15:
+                            for event in prefix.events: print(event['concept:name'])
+                            #pdb.set_trace()
+                        if prefix.trace_id == 'DS' and prefix_length == 5:
+                            for event in prefix.events: print(event['concept:name'])
+                            print(e)
+                            print(prefix_length)
+                            #pdb.set_trace()
+                        """
+                        if len(recommendation) > 50:
+                            print(e)
+                            print(prefix.trace_id)
+                            print(prefix_length)
+                            pdb.set_trace()
+                        """
 
                     """
                     if prefix_length > 2:
@@ -565,8 +586,8 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     except:
         eval_res.mcc = 0
 
-    # pdb.set_trace()
-    eval_res.gain = gain(eval_res.comp, eval_res.non_comp, eval_res.pos_comp, eval_res.pos_non_comp)
+    if settings.compute_gain:
+        eval_res.gain = gain(eval_res.comp, eval_res.non_comp, eval_res.pos_comp, eval_res.pos_non_comp)
 
     # print("Writing evaluation result into csv file ...")
     # write_evaluation_to_csv(eval_res, dataset_name)

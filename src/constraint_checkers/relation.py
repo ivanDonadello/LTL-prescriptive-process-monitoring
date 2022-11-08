@@ -1,5 +1,8 @@
+import pdb
+
 from src.enums import TraceState
 from src.models import CheckerResult
+
 
 
 # mp-responded-existence constraint checker

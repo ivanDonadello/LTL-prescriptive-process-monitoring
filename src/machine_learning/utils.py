@@ -41,7 +41,7 @@ def matthews_corrcoef(tp, fp, fn, tn):
         return num/denom
 
 
-def calcScore(path, pos_paths_total_samples_):
+def calcScore(path, pos_paths_total_samples_, weights):
     purity = 1 - path.impurity
     pos_probabiity = path.num_samples['positive']/pos_paths_total_samples_
     w = np.array([0.8, 0.1, 0.1])
@@ -49,8 +49,8 @@ def calcScore(path, pos_paths_total_samples_):
     #pdb.set_trace()
 
     if path.num_samples['node_samples'] > 2:
-        w = np.array([0.6, 0.2, 0.2])
-
+        w = weights
+    #pdb.set_trace()
     return np.mean(w*np.array([path.fitness, purity, pos_probabiity]))
     # return path.fitness*1#pos_probabiity
 

@@ -112,10 +112,11 @@ class DatasetManager:
         dt_prefixes['case_length'] = dt_prefixes['case_length'].apply(lambda x: min(max_length, x))
         return dt_prefixes
 
-    def get_pos_case_length_quantile(self, data, quantile=0.90):
-        hist = data.groupby(self.case_id_col).size().plot.hist(bins=20)
-        hist_1 = data[data[self.label_col] == self.pos_label].groupby(self.case_id_col).size().plot.hist(bins=20)
-        plt.savefig(f'lbl_hist_{self.dataset_name}.pdf')
+    def get_pos_case_length_quantile(self, data, quantile=0.90, save_hist=False,):
+        if save_hist:
+            hist = data.groupby(self.case_id_col).size().plot.hist(bins=20)
+            hist_1 = data[data[self.label_col] == self.pos_label].groupby(self.case_id_col).size().plot.hist(bins=20)
+            plt.savefig(f'lbl_hist_{self.dataset_name}.pdf')
         return int(np.ceil(data[data[self.label_col] == self.pos_label].groupby(self.case_id_col).size().quantile(quantile)))
 
     def get_indexes(self, data):
