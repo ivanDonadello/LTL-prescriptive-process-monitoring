@@ -14,7 +14,7 @@ The following Python packages are required:
 ## Repository Structure
 - `media` contains the input logs and the performance of the prescriptive system;
 - `media/input` contains the input logs in `.csv` format. Before reproducing the experiments it is necessary to download 
-  and unzip the logs from [here](https://drive.google.com/file/d/1DDP7OKQhD8cno2tbSpLlIPZ-Mh5y-XUC/view?usp=sharing);
+  and unzip the log folder from [here](https://drive.google.com/file/d/1DDP7OKQhD8cno2tbSpLlIPZ-Mh5y-XUC/view?usp=sharing);
 - `src` contains the backbone code;
 - `settings.py` contains the main settings for the experiments as described in the below paper;
 - `dataset_figures.py` is a Python script to extract the dataset figures and save them in a `.csv` file in the 
