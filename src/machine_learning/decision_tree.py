@@ -114,7 +114,7 @@ def find_best_dt(dataset_name, constr_family, data, checkers, rules, labeling, s
                                         # class_names=['regular', 'deviant'])
         graph = graphviz.Source(dot_data, format="pdf")
         graph.render(os.path.join(settings.output_dir, f'DT_{dataset_name}_{constr_family}'))
-    return model_dict, support_threshold_dict
+    return model_dict, new_feature_names
 
 
 def dt_score(dt_input):

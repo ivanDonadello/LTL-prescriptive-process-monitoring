@@ -436,7 +436,6 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     pred = []
 
     for prefix_length in test_prefixes:
-        #pdb.set_trace()
         eval_res.prefix_length = prefix_length
         # for id, pref in enumerate(test_prefixes[prefix_length]): print(id, test_log[pref.trace_num][0]['label'])
         for prefix in test_prefixes[prefix_length]:
@@ -448,7 +447,6 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
             for path in paths:
                 path.fitness = calcPathFitnessOnPrefix(prefix.events, path, rules, settings.fitness_type)
                 path.score = calcScore(path, pos_paths_total_samples, weights=hyperparams_evaluation[1:])
-                pdb.set_trace()
 
             # paths = sorted(paths, key=lambda path: (- path.fitness, path.impurity, - path.num_samples["total"]), reverse=False)
             if settings.use_score:

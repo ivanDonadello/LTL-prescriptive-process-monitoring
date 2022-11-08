@@ -69,7 +69,7 @@ datasets_names = ["bpic2011_f1", "bpic2011_f2", "bpic2011_f3", "bpic2011_f4",
                   "bpic2015_5_f2", "bpic2017_accepted", "bpic2017_cancelled",
                   "bpic2017_refused", "hospital_billing_2", "hospital_billing_3", "Production",
                   "sepsis_cases_1", "sepsis_cases_2", "sepsis_cases_4", "traffic_fines_1"]
-
+datasets_names = ["Production"]
 # ================ hyperparameters ================
 """
 hyperparameters = {'support_threshold': [support_threshold_dict['min']-0.2, support_threshold_dict['min']-0.1,
