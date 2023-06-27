@@ -17,6 +17,7 @@ num_classes = 2
 train_prefix_log = False
 one_hot_encoding = True
 use_score = True
+prova = False
 
 # ================ folders ================
 output_dir = "media/output"
