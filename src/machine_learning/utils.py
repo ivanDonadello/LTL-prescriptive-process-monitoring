@@ -4,7 +4,7 @@ from src.constants.constants import CONSTRAINT_CHECKER_FUNCTIONS
 from src.models.Prefix import *
 from src.machine_learning.encoding import encode_traces
 from src.machine_learning.apriori import generate_frequent_events_and_pairs
-#from src.machine_learning.decision_tree import generate_decision_tree, generate_paths, generate_boost_decision_tree
+# from src.machine_learning.decision_tree import generate_decision_tree, generate_paths, generate_boost_decision_tree
 from src.enums import PrefixType
 from sklearn.model_selection import train_test_split
 import itertools
@@ -46,11 +46,11 @@ def calcScore(path, pos_paths_total_samples_, weights):
     pos_probabiity = path.num_samples['positive']/pos_paths_total_samples_
     w = np.array([0.8, 0.1, 0.1])
     w = np.array([0.0, 0, 0])
-    #pdb.set_trace()
+    # pdb.set_trace()
 
     if path.num_samples['node_samples'] > 2:
         w = weights
-    #pdb.set_trace()
+    # pdb.set_trace()
     return np.mean(w*np.array([path.fitness, purity, pos_probabiity]))
     # return path.fitness*1#pos_probabiity
 

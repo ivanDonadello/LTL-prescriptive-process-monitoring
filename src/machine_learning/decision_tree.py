@@ -1,36 +1,23 @@
-import numpy as np
-import pandas as pd
-import pdb
 import graphviz
-from sklearn.svm import SVC
-from sklearn.neural_network import MLPClassifier
 from sklearn import tree
-from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import chi2
-from sklearn.feature_selection import mutual_info_classif
-import math
 from sklearn.tree import DecisionTreeClassifier
 from src.models import *
-from src.enums import *
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
 from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.ensemble import RandomForestClassifier
 from imblearn.over_sampling import SMOTE
 from collections import Counter
 from imblearn.over_sampling import ADASYN
 from imblearn.combine import SMOTEENN
-import settings
 from sklearn.model_selection import GridSearchCV
 from src.machine_learning.apriori import *
-from src.machine_learning.encoding import *
 from src.machine_learning.utils import *
 from pm4py.objects.log import obj as log
 from pm4py.objects.log.util.get_prefixes import get_log_with_log_prefixes
 
 
-def find_best_dt(dataset_name, constr_family, data, checkers, rules, labeling, support_threshold_dict, render_dt, num_feat_strategy):
-    print("DT params optimization ...")
+def find_best_dt(dataset_name, constr_family, data, checkers, rules, labeling, support_threshold_dict, render_dt,
+                 num_feat_strategy):
+    print(f"DT params optimization for {dataset_name}...")
     categories = [TraceLabel.FALSE.value, TraceLabel.TRUE.value]
     model_dict = {'dataset_name': dataset_name, 'constr_family': constr_family, 'parameters': (),
                   'f1_score_val': None, 'f1_score_train': None, 'f1_prefix_val': None, 'max_depth': 0,
@@ -96,8 +83,9 @@ def find_best_dt(dataset_name, constr_family, data, checkers, rules, labeling, s
     cols = sel.get_support(indices=True)
     new_feature_names = np.array(dt_input_trainval.features)[cols]
 
-    print("Grid search ...")
-    search = GridSearchCV(estimator=DecisionTreeClassifier(random_state=0), param_grid=settings.dt_hyperparameters, scoring="f1", return_train_score=True, cv=5)
+    print(f"Grid search for {dataset_name}...")
+    search = GridSearchCV(estimator=DecisionTreeClassifier(random_state=0), param_grid=settings.dt_hyperparameters,
+                          scoring="f1", return_train_score=True, cv=5)
     search.fit(X_train, y_train)
 
     model_dict['model'] = search.best_estimator_

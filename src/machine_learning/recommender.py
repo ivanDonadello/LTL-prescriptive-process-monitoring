@@ -1,7 +1,8 @@
 import copy
-#from src.machine_learning.utils import *
-#from src.machine_learning.apriori import *
-#from src.machine_learning.encoding import *
+import timeit
+import pdb
+from src.enums import LabelThresholdType, ConfusionMatrix
+from src.machine_learning import calc_mean_label_threshold, generate_label
 from src.machine_learning.decision_tree import *
 from src.models import EvaluationResult
 from src.constants import *
@@ -12,7 +13,8 @@ from sklearn import metrics
 
 
 class ParamsOptimizer:
-    def __init__(self, data_log, train_val_log, val_log, train_log, parameters, labeling, checkers, rules, min_prefix_length, max_prefix_length):
+    def __init__(self, data_log, train_val_log, val_log, train_log, parameters, labeling, checkers, rules,
+                 min_prefix_length, max_prefix_length):
         self.parameter_names = parameters.keys()
         self.val_log = val_log
         self.data_log = data_log
@@ -53,9 +55,12 @@ class ParamsOptimizer:
             y_val = pd.Categorical(dt_input_val.labels, categories=categories)
 
             # Generating decision tree and its score on a validation set
-            dtc, f1_score_val, f1_score_train = generate_decision_tree(X_train, X_val, y_train, y_val, class_weight=param_tuple[1], min_samples_split=param_tuple[2])
-            print(param_tuple)
-            paths = generate_paths(dtc=dtc, dt_input_features=dt_input_train.features, target_label=self.labeling["target"])
+            dtc, f1_score_val, f1_score_train = generate_decision_tree(X_train, X_val, y_train, y_val,
+                                                                       class_weight=param_tuple[1],
+                                                                       min_samples_split=param_tuple[2])
+            # print(param_tuple)
+            paths = generate_paths(dtc=dtc, dt_input_features=dt_input_train.features,
+                                   target_label=self.labeling["target"])
 
             # Evaluation on val set prefixes
             results = []
@@ -314,7 +319,7 @@ def train_path_recommender(data_log, train_val_log, val_log, train_log, labeling
         settings.hyperparameters['class_weight'] = [None]
         settings.dt_hyperparameters['class_weight'] = [None]
 
-    print("Generating decision tree with params optimization ...")
+    print(f"Generating decision tree with params optimization for {dataset_name}...")
     if settings.optmize_dt:
         best_model_dict, feature_names = find_best_dt(dataset_name, constr_family, train_val_log, checkers, rules,
                                                       labeling, support_threshold, settings.print_dt, feat_strategy)
@@ -328,7 +333,7 @@ def train_path_recommender(data_log, train_val_log, val_log, train_log, labeling
         row = list(best_model_dict.values())
         w.writerow(row[:-1]) # do not print the model
 
-    print("Generating decision tree paths ...")
+    print(f"Generating decision tree paths for {dataset_name}...")
     paths = generate_paths(dtc=best_model_dict['model'], dt_input_features=feature_names,
                            target_label=target_label)
     return paths
@@ -340,7 +345,7 @@ def evaluate_recommendations(input_log, labeling, prefixing, rules, paths):
 
     target_label = labeling["target"]
 
-    print("Generating test prefixes ...")
+    # print("Generating test prefixes ...")
     prefixes = generate_prefixes(input_log, prefixing)
 
     eval_res = EvaluationResult()
@@ -409,7 +414,8 @@ def evaluate_recommendations(input_log, labeling, prefixing, rules, paths):
 
 
 def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefixing, support_threshold, checkers,
-                                            rules, paths, dataset_name, hyperparams_evaluation, eval_res=None, debug=False):
+                                            rules, paths, dataset_name, hyperparams_evaluation, constr_family,
+                                            eval_res=None, debug=False):
     if labeling["threshold_type"] == LabelThresholdType.LABEL_MEAN:
         labeling["custom_threshold"] = calc_mean_label_threshold(train_log, labeling)
 
@@ -425,22 +431,24 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     paths = generate_decision_tree_paths(dt_input=dt_input, target_label=target_label)
     """
 
-    print("Generating test prefixes ...")
+    # print("Generating test prefixes ...")
     test_prefixes = generate_prefixes(test_log, prefixing)
 
-    print("Generating recommendations ...")
+    # print("Generating recommendations ...")
     recommendations = []
     if eval_res is None:
         eval_res = EvaluationResult()
     y = []
     pred = []
+    time_results = []
 
     for prefix_length in test_prefixes:
         eval_res.prefix_length = prefix_length
         # for id, pref in enumerate(test_prefixes[prefix_length]): print(id, test_log[pref.trace_num][0]['label'])
         for prefix in test_prefixes[prefix_length]:
-            eval_res.num_cases = len(test_prefixes[prefix_length])
+            start_time = timeit.default_timer()
 
+            eval_res.num_cases = len(test_prefixes[prefix_length])
             pos_paths_total_samples = 0
             for path in paths:
                 pos_paths_total_samples += path.num_samples['node_samples']
@@ -471,14 +479,20 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
                 eval_res.pos_non_comp += 1 if not compliant and label.value == TraceLabel.TRUE.value else 0
 
             selected_path = None
+            quering_time = timeit.default_timer() - start_time
             for path_index, path in enumerate(reranked_paths):
 
                 if selected_path and (path.fitness != selected_path.fitness or path.impurity != selected_path.impurity
                                       or path.num_samples != selected_path.num_samples):
                     break
-
+                start_time = timeit.default_timer()
                 recommendation = recommend(prefix.events, path, rules)
+                recommendation_time = timeit.default_timer() - start_time
+
                 # print(f"{prefix_length} {prefix.trace_num} {prefix.trace_id} {path_index}->{recommendation}")
+                total_recommendation_time = quering_time + recommendation_time
+                # print(f"{dataset_name} {prefix_length} {prefix.trace_num} {prefix.trace_id} {path_index} {total_recommendation_time}")
+                time_results.append([dataset_name, constr_family, prefix.trace_id, prefix_length, total_recommendation_time])
 
                 if recommendation != "Contradiction" and recommendation != "":
                     # if True:
@@ -593,7 +607,7 @@ def generate_recommendations_and_evaluation(test_log, train_log, labeling, prefi
     # print("Writing recommendations into csv file ...")
     # write_recommendations_to_csv(recommendations, dataset_name)
 
-    return recommendations, eval_res
+    return recommendations, eval_res, time_results
 
 
 def write_evaluation_to_csv(e, dataset):

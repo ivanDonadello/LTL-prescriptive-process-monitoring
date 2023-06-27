@@ -18,9 +18,9 @@ logs_dir = ""
 #### Traffic fines settings ####
 
 for formula in range(1,3):
-    dataset = "traffic_fines_%s"%formula
+    dataset = "traffic_fines_%s" % formula
     
-    filename[dataset] = os.path.join(logs_dir, "traffic_fines_%s.csv"%formula)
+    filename[dataset] = os.path.join(logs_dir, "traffic_fines_%s.csv" % formula)
     
     case_id_col[dataset] = "Case ID"
     activity_col[dataset] = "Activity"
